@@ -1,4 +1,6 @@
 import { useAuth, useUser } from "@clerk/expo";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Image,
@@ -12,26 +14,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { images } from "@/constants/images";
 import { colors } from "@/constants/theme";
-import { LANGUAGES } from "@/data/languages";
-import { UNITS } from "@/data/units";
+import { useCurriculum } from "@/hooks/useCurriculum";
+import { useLanguages } from "@/hooks/useLanguages";
+import { useLearningProgress } from "@/hooks/useLearningProgress";
 import { posthog } from "@/lib/posthog";
 import { useLanguageStore } from "@/store/languageStore";
-import { useLearningStore } from "@/store/learningStore";
-import { LanguageCode } from "@/types/learning";
 
-function getGreeting(langCode: LanguageCode | null): string {
-  switch (langCode) {
-    case "es":
-      return "Hola";
-    case "fr":
-      return "Bonjour";
-    case "ja":
-      return "こんにちは";
-    case "de":
-      return "Hallo";
-    default:
-      return "Hello";
-  }
+function getGreeting(): string {
+  return "Moien";
 }
 
 const PLAN_ITEMS = [
@@ -41,7 +31,7 @@ const PLAN_ITEMS = [
     iconBg: "#EDE9FE",
     iconColor: colors.primary.purple,
     title: "Lesson",
-    subtitle: "At the café",
+    subtitle: "Moien & Äddi",
     completed: true,
   },
   {
@@ -68,12 +58,20 @@ export default function HomeScreen() {
   const { user } = useUser();
   const { signOut } = useAuth();
   const { selectedLanguage } = useLanguageStore();
-  const { xpToday, dailyGoal, streak } = useLearningStore();
+  const { xpToday, dailyGoal, streak, refresh: refreshProgress } =
+    useLearningProgress();
 
-  const language = LANGUAGES.find((l) => l.code === selectedLanguage);
-  const unit = UNITS.find((u) => u.languageCode === selectedLanguage);
+  useFocusEffect(
+    useCallback(() => {
+      refreshProgress();
+    }, [refreshProgress])
+  );
+  const { languages } = useLanguages();
+  const { unit } = useCurriculum(selectedLanguage);
+
+  const language = languages.find((l) => l.code === selectedLanguage);
   const firstName = user?.firstName ?? "Learner";
-  const greeting = getGreeting(selectedLanguage);
+  const greeting = getGreeting();
   const xpProgress =
     dailyGoal > 0 ? Math.min((xpToday / dailyGoal) * 100, 100) : 0;
 

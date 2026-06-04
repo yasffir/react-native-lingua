@@ -11,6 +11,9 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.jsmastery.duolingo-clone",
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       package: "com.jsmastery.duolingoclone",
@@ -67,6 +70,9 @@ export default {
       reactCompiler: true,
     },
     extra: {
+      eas: {
+        projectId: "af8878c5-aad6-4fc9-aa15-9387abc1c1a0",
+      },
       posthogProjectToken: process.env.POSTHOG_PROJECT_TOKEN,
       posthogHost: process.env.POSTHOG_HOST,
       streamApiKey: process.env.STREAM_API_KEY,

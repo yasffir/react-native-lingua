@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback } from "react";
 import {
+  ActivityIndicator,
   Image as RNImage,
   ScrollView,
   StyleSheet,
@@ -14,23 +16,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LessonCard } from "@/components/LessonCard";
 import { images } from "@/constants/images";
 import { colors } from "@/constants/theme";
-import { LESSONS } from "@/data/lessons";
-import { UNITS } from "@/data/units";
+import { useCurriculum } from "@/hooks/useCurriculum";
+import { useLearningProgress } from "@/hooks/useLearningProgress";
 import { useLanguageStore } from "@/store/languageStore";
-import { useLearningStore } from "@/store/learningStore";
-import { Lesson } from "@/types/learning";
 
 export default function LearnScreen() {
   const router = useRouter();
   const { selectedLanguage } = useLanguageStore();
-  const { completedLessonIds } = useLearningStore();
+  const { completedLessonIds, refresh: refreshProgress } =
+    useLearningProgress();
 
-  const unit = UNITS.find((u) => u.languageCode === selectedLanguage);
-  const lessons = unit
-    ? (unit.lessonIds
-        .map((id) => LESSONS.find((l) => l.id === id))
-        .filter(Boolean) as Lesson[])
-    : [];
+  useFocusEffect(
+    useCallback(() => {
+      refreshProgress();
+    }, [refreshProgress])
+  );
+  const { unit, lessons, loading } = useCurriculum(selectedLanguage);
 
   const completedCount = lessons.filter((l) =>
     completedLessonIds.includes(l.id)
@@ -55,6 +56,23 @@ export default function LearnScreen() {
     );
   }
 
+  const showInitialLoader = loading && lessons.length === 0;
+
+  if (showInitialLoader) {
+    return (
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.neutral.background }}
+      >
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={colors.primary.purple} />
+          <Text className="body-md text-text-secondary mt-3">
+            Loading lessons…
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.neutral.background }}
@@ -63,7 +81,7 @@ export default function LearnScreen() {
       <View className="px-5 pt-2 pb-3">
         <View className="flex-row items-center mb-1">
           <TouchableOpacity
-            onPress={() => router.navigate("/")}
+            onPress={() => router.navigate("/(tabs)")}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons

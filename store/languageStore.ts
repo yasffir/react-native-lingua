@@ -13,13 +13,15 @@ interface LanguageState {
 export const useLanguageStore = create<LanguageState>()(
   persist(
     (set) => ({
-      selectedLanguage: null,
+      selectedLanguage: "lu",
       setSelectedLanguage: (code) => set({ selectedLanguage: code }),
-      clearSelectedLanguage: () => set({ selectedLanguage: null }),
+      clearSelectedLanguage: () => set({ selectedLanguage: "lu" }),
     }),
     {
       name: "language-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      migrate: () => ({ selectedLanguage: "lu" as const }),
     }
   )
 );

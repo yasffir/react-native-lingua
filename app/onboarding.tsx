@@ -13,19 +13,19 @@ export default function OnboardingScreen() {
         <View className="flex-row items-center justify-center gap-2 mt-4">
           <Image source={images.mascotLogo} className="w-10 h-10" />
           <Text className="font-poppins-semibold text-xl text-text-primary">
-            lingua
+            LetzGo
           </Text>
         </View>
 
         {/* Hero heading */}
-        <Text className="h1 mt-8">
+        <Text className="h1 mt-8 ">
           {"Your AI language\n"}
           <Text className="text-lingua-purple">teacher.</Text>
         </Text>
 
         {/* Subtitle */}
         <Text className="body-md text-text-secondary mt-3">
-          Real conversations, personalized lessons, anytime, anywhere.
+          Personalized Luxembourgish lessons, anytime, anywhere.
         </Text>
 
         {/* Mascot illustration with speech bubbles */}
@@ -41,7 +41,7 @@ export default function OnboardingScreen() {
             style={styles.shadow}
           >
             <Text className="font-poppins-medium text-sm text-text-primary">
-              Hello!
+              Moien!
             </Text>
           </View>
 
@@ -50,7 +50,7 @@ export default function OnboardingScreen() {
             style={styles.shadow}
           >
             <Text className="font-poppins-medium text-sm text-text-primary">
-              ¡Hola!
+              Hello!
             </Text>
           </View>
 
@@ -59,7 +59,7 @@ export default function OnboardingScreen() {
             style={styles.shadow}
           >
             <Text className="font-poppins-medium text-sm text-error">
-              你好!
+              Bonjour!
             </Text>
           </View>
         </View>

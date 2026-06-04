@@ -1,6 +1,10 @@
 import { images } from "@/constants/images";
 import { LANGUAGES } from "@/data/languages";
 import { posthog } from "@/lib/posthog";
+import { isSupabaseConfigured } from "@/lib/config";
+import { updatePreferredLanguage } from "@/lib/profile/sync";
+import { useSupabase } from "@/hooks/useSupabase";
+import { useUser } from "@clerk/expo";
 import { useLanguageStore } from "@/store/languageStore";
 import { Language, LanguageCode } from "@/types/learning";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,20 +15,18 @@ import {
   Image,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LanguageSelectScreen() {
+  const { user } = useUser();
+  const userId = user?.id;
+  const supabase = useSupabase();
   const { setSelectedLanguage } = useLanguageStore();
   const [selectedCode, setSelectedCode] = useState<string>(LANGUAGES[0].code);
-  const [search, setSearch] = useState("");
-
-  const filtered = LANGUAGES.filter((lang) =>
-    lang.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = LANGUAGES;
 
   const renderItem = ({ item }: { item: Language }) => {
     const isSelected = item.code === selectedCode;
@@ -65,28 +67,13 @@ export default function LanguageSelectScreen() {
           <Ionicons name="chevron-back" size={24} color="#001328" />
         </TouchableOpacity>
         <Text className="flex-1 text-center font-poppins-semibold text-lg text-text-primary">
-          Choose a language
+          Lëtzebuergesch
         </Text>
         <View className="w-8" />
       </View>
 
-      {/* Search */}
-      <View className="px-4 mb-4">
-        <View className="flex-row items-center bg-surface rounded-2xl px-4 py-3">
-          <Ionicons name="search-outline" size={18} color="#9ca3af" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search languages"
-            placeholderTextColor="#9ca3af"
-            value={search}
-            onChangeText={setSearch}
-          />
-        </View>
-      </View>
-
-      {/* Popular label */}
-      <Text className="px-4 font-poppins-semibold text-base text-text-primary mb-2">
-        Popular
+      <Text className="px-4 body-md text-text-secondary mb-4">
+        This app is set up for Luxembourgish only.
       </Text>
 
       {/* Language list */}
@@ -113,6 +100,11 @@ export default function LanguageSelectScreen() {
               language_name: selectedLang?.name ?? selectedCode,
             });
             setSelectedLanguage(selectedCode as LanguageCode);
+            if (isSupabaseConfigured && supabase && userId) {
+              updatePreferredLanguage(supabase, userId, selectedCode).catch(
+                console.warn
+              );
+            }
             router.replace("/");
           }}
         >
@@ -135,14 +127,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontFamily: "Poppins-Regular",
-    fontSize: 14,
-    color: "#001328",
-    padding: 0,
   },
   listContent: {
     paddingHorizontal: 16,

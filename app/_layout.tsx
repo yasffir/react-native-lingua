@@ -1,5 +1,6 @@
 import "../global.css";
 
+import { ProfileSync } from "@/components/ProfileSync";
 import { posthog } from "@/lib/posthog";
 import { useLanguageStore } from "@/store/languageStore";
 import { useUser } from "@clerk/expo";
@@ -78,13 +79,14 @@ export default function RootLayout() {
     >
       <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
         <ClerkIdentifier />
+        <ProfileSync />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="language-select" />
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="lesson" />
+          <Stack.Screen name="lesson/[id]" />
         </Stack>
       </ClerkProvider>
     </PostHogProvider>

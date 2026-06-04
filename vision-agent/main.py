@@ -12,19 +12,26 @@ from getstream.models import MemberRequest  # noqa: E402
 from openai.types.realtime.realtime_transcription_session_audio_input_turn_detection_param import ServerVad  # noqa: E402
 from vision_agents.core import Agent, AgentLauncher, User, Runner  # noqa: E402
 from vision_agents.core.instructions import Instructions  # noqa: E402
-from vision_agents.core.llm.events import (  # noqa: E402
-    RealtimeAgentSpeechTranscriptionEvent,
-    RealtimeUserSpeechTranscriptionEvent,
-)
+try:
+    from vision_agents.core.llm.events import (  # noqa: E402
+        RealtimeAgentSpeechTranscriptionEvent,
+        RealtimeUserSpeechTranscriptionEvent,
+    )
+except ImportError:
+    # vision_agents < 0.7 doesn't have transcription events yet — stubs disable captions
+    class RealtimeAgentSpeechTranscriptionEvent:  # type: ignore[no-redef]
+        mode: str = ""
+        text: str = ""
+
+    class RealtimeUserSpeechTranscriptionEvent:  # type: ignore[no-redef]
+        mode: str = ""
+        text: str = ""
 from vision_agents.plugins import getstream, openai  # noqa: E402
 
 AGENT_USER_ID = "ai-teacher"
 
 LANGUAGE_NAMES: dict[str, str] = {
-    "es": "Spanish",
-    "fr": "French",
-    "ja": "Japanese",
-    "de": "German",
+    "lu": "Luxembourgish",
 }
 
 DEFAULT_SYSTEM_PROMPT = (
