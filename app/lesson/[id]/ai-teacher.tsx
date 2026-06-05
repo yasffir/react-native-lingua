@@ -1,14 +1,18 @@
 import { Lesson } from "@/types/learning";
 import { useAuth, useUser } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  Call,
-  CallClosedCaption,
-  StreamCall,
-  StreamVideo,
-  StreamVideoClient,
-  useCallStateHooks,
-} from "@stream-io/video-react-native-sdk";
+let Call: any, CallClosedCaption: any, StreamCall: any, StreamVideo: any, StreamVideoClient: any, useCallStateHooks: any;
+try {
+  const mod = require("@stream-io/video-react-native-sdk");
+  Call = mod.Call;
+  CallClosedCaption = mod.CallClosedCaption;
+  StreamCall = mod.StreamCall;
+  StreamVideo = mod.StreamVideo;
+  StreamVideoClient = mod.StreamVideoClient;
+  useCallStateHooks = mod.useCallStateHooks;
+} catch {
+  // Native module not available — ai-teacher screen will show an error state
+}
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";

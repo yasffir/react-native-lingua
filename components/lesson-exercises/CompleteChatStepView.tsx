@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { colors, fontFamily } from "@/constants/theme";
+import { playWord } from "@/lib/audio";
 import type { CompleteChatExerciseStep } from "@/types/lessonExercise";
 
 const DUO_BLUE = "#1CB0F6";
@@ -48,9 +49,15 @@ export function CompleteChatStepView({
       <View style={styles.chatArea}>
         <View style={styles.promptRow}>
           <View style={styles.bubbleLeft}>
-            <TouchableOpacity style={styles.speaker} activeOpacity={0.8}>
-              <Ionicons name="volume-high" size={20} color={DUO_BLUE} />
-            </TouchableOpacity>
+            {step.audioId ? (
+              <TouchableOpacity
+                style={styles.speaker}
+                activeOpacity={0.8}
+                onPress={() => playWord(step.audioId)}
+              >
+                <Ionicons name="volume-high" size={20} color={DUO_BLUE} />
+              </TouchableOpacity>
+            ) : null}
             <View style={styles.promptWords}>
               {promptTokens.map((token, i) => (
                 <View key={`${token}-${i}`} style={styles.tokenWrap}>

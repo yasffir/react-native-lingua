@@ -7,7 +7,25 @@ import {
 } from "@/lib/curriculum/local";
 import { isSupabaseConfigured } from "@/lib/config";
 import { useSupabase } from "@/hooks/useSupabase";
-import type { Lesson } from "@/types/learning";
+import type { Lesson, VocabularyItem } from "@/types/learning";
+
+/** Merge audioId from local lesson data into a remote lesson. */
+function enrichWithAudio(remote: Lesson): Lesson {
+  const local = getLocalLesson(remote.id);
+  if (!local) return remote;
+  const audioMap = new Map<string, string>();
+  for (const v of local.vocabulary) {
+    if (v.audioId) audioMap.set(v.word, v.audioId);
+  }
+  if (audioMap.size === 0) return remote;
+  return {
+    ...remote,
+    vocabulary: remote.vocabulary.map((v) => {
+      const audioId = audioMap.get(v.word);
+      return audioId ? { ...v, audioId } : v;
+    }),
+  };
+}
 
 export function useLesson(lessonId: string | undefined) {
   const supabase = useSupabase();
@@ -35,7 +53,7 @@ export function useLesson(lessonId: string | undefined) {
     setError(null);
     try {
       const remoteLesson = await fetchLessonById(supabase, lessonId);
-      setLesson(remoteLesson);
+      setLesson(remoteLesson ? enrichWithAudio(remoteLesson) : null);
       const all = await fetchAllLessons(supabase);
       setLessonIndex(all.findIndex((l) => l.id === lessonId));
     } catch (e) {

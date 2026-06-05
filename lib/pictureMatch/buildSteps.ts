@@ -57,6 +57,7 @@ export function buildPictureMatchSteps(lesson: Lesson): PictureMatchStep[] {
       id: `${lesson.id}-${target.word}`,
       promptWord: target.word,
       promptTranslation: target.translation,
+      audioId: target.audioId,
       correctOptionId: target.word,
       options,
     };

@@ -1,11 +1,17 @@
+import { LOD_MATCHING_PAIRS } from "./lodMatchingPairs";
+
 /** One matching-pairs round: English (left) ↔ Luxembourgish (right). */
 export interface MatchingPairConfig {
   english: string;
   luxembourgish: string;
+  fr?: string;
+  de?: string;
+  pt?: string;
 }
 
 /** Per lesson, one or more sets (each set becomes one exercise step). */
 export const LESSON_MATCHING_PAIRS: Record<string, MatchingPairConfig[][]> = {
+  ...LOD_MATCHING_PAIRS,
   "lu-lesson-1": [
     [
       { english: "Hello", luxembourgish: "Moien" },

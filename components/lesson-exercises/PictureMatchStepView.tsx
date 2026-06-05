@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { OptionCard } from "@/components/picture-match/OptionCard";
 import { colors, fontFamily } from "@/constants/theme";
+import { playWord } from "@/lib/audio";
 import type { PictureMatchExerciseStep } from "@/types/lessonExercise";
 
 interface PictureMatchStepViewProps {
@@ -29,9 +30,15 @@ export function PictureMatchStepView({
         </View>
         <Text style={styles.instruction}>Select the correct image</Text>
         <View style={styles.wordRow}>
-          <TouchableOpacity style={styles.speakerButton} activeOpacity={0.8}>
-            <Ionicons name="volume-high" size={22} color="#1CB0F6" />
-          </TouchableOpacity>
+          {step.audioId ? (
+            <TouchableOpacity
+              style={styles.speakerButton}
+              activeOpacity={0.8}
+              onPress={() => playWord(step.audioId)}
+            >
+              <Ionicons name="volume-high" size={22} color="#1CB0F6" />
+            </TouchableOpacity>
+          ) : null}
           <View>
             <Text style={styles.promptWord}>{step.promptWord}</Text>
             <View style={styles.promptUnderline} />

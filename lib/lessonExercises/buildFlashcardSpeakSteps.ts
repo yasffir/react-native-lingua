@@ -1,5 +1,6 @@
+import { translationLanguageName } from "@/lib/translation";
 import { shuffle } from "@/lib/lessonExercises/shuffle";
-import type { Lesson, VocabularyItem } from "@/types/learning";
+import type { Lesson, TranslationLanguage, VocabularyItem } from "@/types/learning";
 import type {
   FlashcardSpeakExerciseStep,
   TranslationExplain,
@@ -7,34 +8,42 @@ import type {
 
 const MAX_STEPS = 3;
 
-function englishLabel(translation: string): string {
+function translationLabel(translation: string): string {
   return translation.split("—")[0].trim().toLowerCase();
 }
 
-function buildExplain(item: VocabularyItem, english: string): TranslationExplain {
+function buildExplain(
+  item: VocabularyItem,
+  translated: string,
+  langName: string
+): TranslationExplain {
   return {
     highlightWord: item.word,
-    meaning: `Say "${item.word}" when you mean "${english}" in English.`,
+    meaning: `Say "${item.word}" when you mean "${translated}" in ${langName}.`,
     examples: [item.word, `${item.word}!`],
   };
 }
 
 export function buildFlashcardSpeakSteps(
-  lesson: Lesson
+  lesson: Lesson,
+  translationLang: TranslationLanguage = "en"
 ): FlashcardSpeakExerciseStep[] {
   if (lesson.vocabulary.length === 0) return [];
 
+  const langName = translationLanguageName(translationLang);
+
   return shuffle(lesson.vocabulary)
     .slice(0, MAX_STEPS)
-    .map((item, index) => {
-      const english = englishLabel(item.translation);
+    .map((item) => {
+      const translated = translationLabel(item.translation);
       return {
         type: "flashcard_speak" as const,
         id: `${lesson.id}-flashcard-${item.word}`,
         luxembourgishWord: item.word,
-        englishWord: english,
+        englishWord: translated,
         pronunciation: item.pronunciation,
-        explain: buildExplain(item, english),
+        audioId: item.audioId,
+        explain: buildExplain(item, translated, langName),
       };
     });
 }

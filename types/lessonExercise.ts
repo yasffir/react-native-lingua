@@ -19,6 +19,7 @@ export interface IncorrectAnswerFeedback {
 export interface TranslationStep {
   id: string;
   sourceSentence: string;
+  audioId?: string;
   correctWords: string[];
   bank: WordBankChip[];
   explain: TranslationExplain;
@@ -42,6 +43,7 @@ export interface CompleteChatStep {
   id: string;
   prompt: string;
   promptTranslation: string;
+  audioId?: string;
   options: ChatReplyOption[];
   correctOptionId: string;
   explain: TranslationExplain;
@@ -58,7 +60,8 @@ export interface SelectTranslationOption {
 
 export interface SelectTranslationStep {
   id: string;
-  englishPrompt: string;
+  luxembourgishPrompt: string;
+  audioId?: string;
   options: SelectTranslationOption[];
   correctOptionId: string;
   explain: TranslationExplain;
@@ -73,6 +76,7 @@ export interface FlashcardSpeakStep {
   luxembourgishWord: string;
   englishWord: string;
   pronunciation: string;
+  audioId?: string;
   explain: TranslationExplain;
 }
 

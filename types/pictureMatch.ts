@@ -19,6 +19,7 @@ export interface PictureMatchStep {
   id: string;
   promptWord: string;
   promptTranslation: string;
+  audioId?: string;
   options: PictureMatchOption[];
   correctOptionId: string;
 }

@@ -1,5 +1,14 @@
 export type LanguageCode = "lu";
 
+export type TranslationLanguage = "en" | "fr" | "de" | "pt";
+
+export interface Translations {
+  en: string;
+  fr?: string;
+  de?: string;
+  pt?: string;
+}
+
 export interface Language {
   code: LanguageCode;
   name: string;
@@ -20,6 +29,8 @@ export interface VocabularyItem {
   translation: string;
   pronunciation: string;
   emoji?: string;
+  audioId?: string;
+  translations?: Translations;
 }
 
 export interface Phrase {

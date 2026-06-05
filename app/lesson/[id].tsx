@@ -26,7 +26,9 @@ import { useLesson } from "@/hooks/useLesson";
 import { buildLessonSteps } from "@/lib/lessonExercises/buildLessonSteps";
 import { isTranslationCorrect } from "@/lib/lessonExercises/buildTranslationSteps";
 import { getIncorrectFeedback } from "@/lib/lessonExercises/incorrectFeedback";
+import { translationLanguageName } from "@/lib/translation";
 import { posthog } from "@/lib/posthog";
+import { useLanguageStore } from "@/store/languageStore";
 import type { LessonExerciseStep } from "@/types/lessonExercise";
 
 type Phase = "pick" | "wrong" | "correct";
@@ -36,10 +38,11 @@ export default function LessonExerciseScreen() {
   const router = useRouter();
   const { lesson, lessonIndex, loading } = useLesson(id);
   const { recordLessonComplete } = useLearningProgress();
+  const { translationLanguage } = useLanguageStore();
 
   const steps = useMemo(
-    () => (lesson ? buildLessonSteps(lesson) : []),
-    [lesson]
+    () => (lesson ? buildLessonSteps(lesson, translationLanguage) : []),
+    [lesson, translationLanguage]
   );
 
   const [stepIndex, setStepIndex] = useState(0);
@@ -226,11 +229,12 @@ export default function LessonExerciseScreen() {
   const incorrectFeedback =
     phase === "wrong" ? getIncorrectFeedback(step) : null;
 
+  const langName = translationLanguageName(translationLanguage);
   const explainPayload =
     step.type === "picture_match"
       ? {
           highlightWord: step.promptWord,
-          meaning: `${step.promptWord} means ${step.promptTranslation} in English.`,
+          meaning: `${step.promptWord} means ${step.promptTranslation} in ${langName}.`,
           examples: [`${step.promptWord}!`],
         }
       : step.explain;

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import {
   ActivityIndicator,
   Image as RNImage,
@@ -31,7 +31,10 @@ export default function LearnScreen() {
       refreshProgress();
     }, [refreshProgress])
   );
-  const { unit, lessons, loading } = useCurriculum(selectedLanguage);
+  const { unit, units, lessons, loading, setUnitIndex } =
+    useCurriculum(selectedLanguage);
+
+  const unitScrollRef = useRef<ScrollView>(null);
 
   const completedCount = lessons.filter((l) =>
     completedLessonIds.includes(l.id)
@@ -40,6 +43,8 @@ export default function LearnScreen() {
   const inProgressIndex = lessons.findIndex(
     (l) => !completedLessonIds.includes(l.id)
   );
+
+  const selectedIndex = unit ? units.indexOf(unit) : 0;
 
   if (!selectedLanguage || !unit) {
     return (
@@ -113,6 +118,43 @@ export default function LearnScreen() {
           Unit {unit.order} · {completedCount}/{lessons.length} lessons
         </Text>
       </View>
+
+      {/* Unit selector */}
+      {units.length > 1 && (
+        <View className="mb-3">
+          <ScrollView
+            ref={unitScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.unitSelectorContent}
+          >
+            {units.map((u, i) => {
+              const isSelected = i === selectedIndex;
+              return (
+                <TouchableOpacity
+                  key={u.id}
+                  onPress={() => setUnitIndex(i)}
+                  style={[
+                    styles.unitPill,
+                    isSelected && styles.unitPillSelected,
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.unitPillText,
+                      isSelected && styles.unitPillTextSelected,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Unit {u.order}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -189,5 +231,29 @@ const styles = StyleSheet.create({
     right: 16,
     width: 110,
     height: 110,
+  },
+  unitSelectorContent: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  unitPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.neutral.surface,
+    borderWidth: 1,
+    borderColor: colors.neutral.border,
+  },
+  unitPillSelected: {
+    backgroundColor: colors.primary.purple,
+    borderColor: colors.primary.purple,
+  },
+  unitPillText: {
+    fontFamily: "Poppins-SemiBold",
+    fontSize: 13,
+    color: colors.neutral.textSecondary,
+  },
+  unitPillTextSelected: {
+    color: "#FFFFFF",
   },
 });

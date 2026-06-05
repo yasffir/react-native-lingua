@@ -1,8 +1,10 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { images } from "@/constants/images";
 import { colors, fontFamily } from "@/constants/theme";
+import { playWord } from "@/lib/audio";
 import type { SelectTranslationExerciseStep } from "@/types/lessonExercise";
 
 const DUO_BLUE_LIGHT = "#E8F4FC";
@@ -29,7 +31,7 @@ export function SelectTranslationStepView({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.instruction}>Select the correct translation</Text>
+      <Text style={styles.instruction}>What does this mean?</Text>
 
       <View style={styles.promptRow}>
         <Image
@@ -38,7 +40,18 @@ export function SelectTranslationStepView({
           contentFit="contain"
         />
         <View style={styles.bubble}>
-          <Text style={styles.englishPrompt}>{step.englishPrompt}</Text>
+          {step.audioId ? (
+            <TouchableOpacity
+              style={styles.speaker}
+              activeOpacity={0.8}
+              onPress={() => playWord(step.audioId)}
+            >
+              <Ionicons name="volume-high" size={20} color="#1CB0F6" />
+            </TouchableOpacity>
+          ) : null}
+          <Text style={styles.luxembourgishPrompt}>
+            {step.luxembourgishPrompt}
+          </Text>
         </View>
       </View>
 
@@ -110,6 +123,9 @@ const styles = StyleSheet.create({
   },
   bubble: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     backgroundColor: "#fff",
     borderWidth: 2,
     borderColor: "#E5E7EB",
@@ -117,14 +133,21 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
     paddingVertical: 18,
     paddingHorizontal: 20,
-    justifyContent: "center",
     minHeight: 72,
   },
-  englishPrompt: {
+  speaker: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E8F7FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  luxembourgishPrompt: {
+    flex: 1,
     fontFamily: fontFamily.bold,
-    fontSize: 20,
+    fontSize: 22,
     color: colors.neutral.textPrimary,
-    textAlign: "center",
   },
   options: {
     gap: 12,

@@ -35,6 +35,19 @@ export async function fetchUnitForLanguage(
   return data ? mapUnitRow(data) : null;
 }
 
+export async function fetchAllUnitsForLanguage(
+  supabase: SupabaseClient,
+  languageCode: LanguageCode
+): Promise<Unit[]> {
+  const { data, error } = await supabase
+    .from("units")
+    .select("*")
+    .eq("language_code", languageCode)
+    .order("order_index");
+  if (error) throw error;
+  return (data ?? []).map(mapUnitRow);
+}
+
 export async function fetchLessonsByIds(
   supabase: SupabaseClient,
   lessonIds: string[]

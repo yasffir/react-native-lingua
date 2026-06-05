@@ -1,6 +1,7 @@
 import { LESSON_MATCHING_PAIRS } from "@/data/matchingPairs";
+import { translationLanguageName } from "@/lib/translation";
 import { shuffle } from "@/lib/lessonExercises/shuffle";
-import type { Lesson } from "@/types/learning";
+import type { Lesson, TranslationLanguage } from "@/types/learning";
 import type {
   MatchingPairEntry,
   MatchingPairsExerciseStep,
@@ -23,17 +24,26 @@ function buildTiles(
 }
 
 export function buildMatchingPairsSteps(
-  lesson: Lesson
+  lesson: Lesson,
+  translationLang: TranslationLanguage = "en"
 ): MatchingPairsExerciseStep[] {
   const sets = LESSON_MATCHING_PAIRS[lesson.id] ?? [];
+  const langName = translationLanguageName(translationLang);
+
   return shuffle(sets)
     .slice(0, MAX_STEPS)
     .map((configs, index) => {
-      const pairs: MatchingPairEntry[] = configs.map((config, i) => ({
-        pairId: `pair-${i}`,
-        english: config.english,
-        luxembourgish: config.luxembourgish,
-      }));
+      const pairs: MatchingPairEntry[] = configs.map((config, i) => {
+        const resolved =
+          translationLang !== "en" && config[translationLang]
+            ? config[translationLang]!
+            : config.english;
+        return {
+          pairId: `pair-${i}`,
+          english: resolved,
+          luxembourgish: config.luxembourgish,
+        };
+      });
 
       const summary = pairs
         .map((p) => `${p.english} ↔ ${p.luxembourgish}`)
@@ -41,7 +51,7 @@ export function buildMatchingPairsSteps(
 
       const explain: TranslationExplain = {
         highlightWord: pairs[0]?.luxembourgish ?? "",
-        meaning: `Match each English word or phrase to its Luxembourgish partner. ${summary}`,
+        meaning: `Match each ${langName} word or phrase to its Luxembourgish partner. ${summary}`,
         examples: pairs.map((p) => `${p.english} → ${p.luxembourgish}`),
       };
 

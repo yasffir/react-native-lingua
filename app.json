@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.localhost.duolingoclone",
       "supportsTablet": true
     },
     "android": {

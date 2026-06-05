@@ -6,6 +6,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 import { WordChip } from "@/components/lesson-exercises/WordChip";
 import { images } from "@/constants/images";
 import { colors, fontFamily } from "@/constants/theme";
+import { playWord } from "@/lib/audio";
 import { getAnswerChipVariants } from "@/lib/lessonExercises/incorrectFeedback";
 import type { TranslationExerciseStep } from "@/types/lessonExercise";
 
@@ -73,9 +74,15 @@ export function TranslateSentenceStepView({
           contentFit="contain"
         />
         <View style={styles.bubble}>
-          <TouchableOpacity style={styles.speakerSmall} activeOpacity={0.8}>
-            <Ionicons name="volume-high" size={20} color="#1CB0F6" />
-          </TouchableOpacity>
+          {step.audioId ? (
+            <TouchableOpacity
+              style={styles.speakerSmall}
+              activeOpacity={0.8}
+              onPress={() => playWord(step.audioId)}
+            >
+              <Ionicons name="volume-high" size={20} color="#1CB0F6" />
+            </TouchableOpacity>
+          ) : null}
           <View style={styles.sourceWords}>
             {sourceTokens.map((token, i) => (
               <View key={`${token}-${i}`} style={styles.sourceTokenWrap}>

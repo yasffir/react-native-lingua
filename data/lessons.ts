@@ -1,6 +1,7 @@
 import { Lesson } from "@/types/learning";
+import { LOD_LESSONS } from "./lodLessons";
 
-export const LESSONS: Lesson[] = [
+const HAND_CRAFTED: Lesson[] = [
   // ─── Luxembourgish ─────────────────────────────────────────────────────────
 
   {
@@ -20,12 +21,14 @@ export const LESSONS: Lesson[] = [
         translation: "Hello",
         pronunciation: "MOY-en",
         emoji: "👋",
+        audioId: "MOIEN1",
       },
       {
         word: "Äddi",
         translation: "Goodbye",
         pronunciation: "AH-dee",
         emoji: "👋",
+        audioId: "ADDI1",
       },
       {
         word: "Gudde Moien",
@@ -141,6 +144,7 @@ export const LESSONS: Lesson[] = [
         translation: "Name",
         pronunciation: "NOOM",
         emoji: "🏷️",
+        audioId: "NUMM1",
       },
       {
         word: "Vu",
@@ -353,6 +357,7 @@ export const LESSONS: Lesson[] = [
         translation: "Thank you",
         pronunciation: "MEHR-see",
         emoji: "🙏",
+        audioId: "MERCI1",
       },
       {
         word: "Merci villmools",
@@ -371,6 +376,7 @@ export const LESSONS: Lesson[] = [
         translation: "Sorry / Excuse me",
         pronunciation: "par-DON",
         emoji: "😅",
+        audioId: "PARDON1",
       },
       {
         word: "Jo",
@@ -446,42 +452,49 @@ export const LESSONS: Lesson[] = [
         translation: "Coffee",
         pronunciation: "KAH-fee",
         emoji: "☕",
+        audioId: "KAFFI1",
       },
       {
         word: "Téi",
         translation: "Tea",
         pronunciation: "TAY",
         emoji: "🍵",
+        audioId: "TEI1",
       },
       {
         word: "Waasser",
         translation: "Water",
         pronunciation: "VAH-ser",
         emoji: "💧",
+        audioId: "WAASSER2",
       },
       {
         word: "Brout",
         translation: "Bread",
         pronunciation: "BROOT",
         emoji: "🥖",
+        audioId: "BROUT1",
       },
       {
         word: "Kuch",
         translation: "Cake",
         pronunciation: "KOOKH",
         emoji: "🍰",
+        audioId: "KUCH1",
       },
       {
         word: "Mëllech",
         translation: "Milk",
         pronunciation: "MEL-lekh",
         emoji: "🥛",
+        audioId: "MELLECH1",
       },
       {
         word: "Zuocker",
         translation: "Sugar",
         pronunciation: "TSOO-ker",
         emoji: "🧊",
+        audioId: "ZOCKER1",
       },
     ],
     phrases: [
@@ -538,3 +551,5 @@ export const LESSONS: Lesson[] = [
     },
   },
 ];
+
+export const LESSONS: Lesson[] = [...HAND_CRAFTED, ...LOD_LESSONS];

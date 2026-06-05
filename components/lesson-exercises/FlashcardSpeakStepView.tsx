@@ -17,6 +17,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { colors, fontFamily } from "@/constants/theme";
+import { playWord } from "@/lib/audio";
 import type { FlashcardSpeakExerciseStep } from "@/types/lessonExercise";
 
 const DUO_BLUE = "#1CB0F6";
@@ -126,6 +127,15 @@ export function FlashcardSpeakStepView({
             style={[styles.card, styles.cardQuestion, cardFrontStyle]}
           >
             <Text style={styles.luxWord}>{step.luxembourgishWord}</Text>
+            {step.audioId ? (
+              <TouchableOpacity
+                style={styles.cardSpeaker}
+                activeOpacity={0.8}
+                onPress={() => playWord(step.audioId)}
+              >
+                <Ionicons name="volume-high" size={20} color="#1CB0F6" />
+              </TouchableOpacity>
+            ) : null}
           </Animated.View>
 
           <Animated.View
@@ -257,6 +267,17 @@ const styles = StyleSheet.create({
   cardAnswer: {
     backgroundColor: "#fff",
     borderColor: "#E5E7EB",
+  },
+  cardSpeaker: {
+    position: "absolute",
+    bottom: 16,
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#E8F7FF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   luxWord: {
     fontFamily: fontFamily.bold,

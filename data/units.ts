@@ -1,6 +1,7 @@
 import { Unit } from "@/types/learning";
+import { LOD_UNITS } from "./lodUnits";
 
-export const UNITS: Unit[] = [
+const HAND_CRAFTED: Unit[] = [
   {
     id: "lu-unit-1",
     languageCode: "lu",
@@ -16,3 +17,5 @@ export const UNITS: Unit[] = [
     ],
   },
 ];
+
+export const UNITS: Unit[] = [...HAND_CRAFTED, ...LOD_UNITS];

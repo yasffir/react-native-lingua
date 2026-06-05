@@ -1,5 +1,6 @@
+import { translationLanguageName } from "@/lib/translation";
 import { shuffle } from "@/lib/lessonExercises/shuffle";
-import type { Lesson, VocabularyItem } from "@/types/learning";
+import type { Lesson, TranslationLanguage, VocabularyItem } from "@/types/learning";
 import type {
   SelectTranslationExerciseStep,
   SelectTranslationOption,
@@ -9,9 +10,8 @@ import type {
 const MAX_STEPS = 4;
 const OPTION_COUNT = 3;
 
-function englishPrompt(translation: string): string {
-  const base = translation.split("—")[0].trim();
-  return base.toLowerCase();
+function translationLabel(translation: string): string {
+  return translation.split("—")[0].trim();
 }
 
 function pickDistractors(
@@ -24,39 +24,47 @@ function pickDistractors(
 
 function buildExplain(
   target: VocabularyItem,
-  english: string
+  translated: string,
+  langName: string
 ): TranslationExplain {
   return {
     highlightWord: target.word,
-    meaning: `"${english}" in Luxembourgish is ${target.word}.`,
+    meaning: `"${target.word}" means "${translated}" in ${langName}.`,
     examples: [target.word, `${target.word}!`],
   };
 }
 
 export function buildSelectTranslationSteps(
-  lesson: Lesson
+  lesson: Lesson,
+  translationLang: TranslationLanguage = "en"
 ): SelectTranslationExerciseStep[] {
   const vocab = lesson.vocabulary;
   if (vocab.length < OPTION_COUNT) return [];
 
+  const langName = translationLanguageName(translationLang);
+
   const steps = shuffle(vocab)
     .slice(0, MAX_STEPS)
-    .map((target, index) => {
+    .map((target) => {
       const distractors = pickDistractors(vocab, target, OPTION_COUNT - 1);
-      const english = englishPrompt(target.translation);
+      const translated = translationLabel(target.translation);
 
       const options: SelectTranslationOption[] = shuffle([
-        { id: target.word, text: target.word },
-        ...distractors.map((d) => ({ id: d.word, text: d.word })),
+        { id: target.word, text: translated },
+        ...distractors.map((d) => ({
+          id: d.word,
+          text: translationLabel(d.translation),
+        })),
       ]);
 
       return {
         type: "select_translation" as const,
         id: `${lesson.id}-select-${target.word}`,
-        englishPrompt: english,
+        luxembourgishPrompt: target.word,
+        audioId: target.audioId,
         options,
         correctOptionId: target.word,
-        explain: buildExplain(target, english),
+        explain: buildExplain(target, translated, langName),
       };
     });
 

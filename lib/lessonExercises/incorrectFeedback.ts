@@ -30,7 +30,7 @@ export function getIncorrectFeedback(
     const correct = step.options.find((o) => o.id === step.correctOptionId);
     return {
       correctAnswer: correct?.text ?? step.correctOptionId,
-      meaning: step.englishPrompt,
+      meaning: step.luxembourgishPrompt,
     };
   }
 
@@ -47,7 +47,7 @@ export function getIncorrectFeedback(
       .join(" · ");
     return {
       correctAnswer: pairs,
-      meaning: "Match each English tile to its Luxembourgish partner.",
+      meaning: "Match each translation tile to its Luxembourgish partner.",
     };
   }
 

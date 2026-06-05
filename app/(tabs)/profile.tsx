@@ -20,6 +20,7 @@ import { LANGUAGES } from "@/data/languages";
 import { useLearningProgress } from "@/hooks/useLearningProgress";
 import { useProfile } from "@/hooks/useProfile";
 import { posthog } from "@/lib/posthog";
+import { TRANSLATION_LANGUAGES } from "@/lib/translation";
 import { useLanguageStore } from "@/store/languageStore";
 
 const DUO_BLUE = "#1CB0F6";
@@ -55,7 +56,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
   const { user, isLoaded } = useUser();
-  const { selectedLanguage } = useLanguageStore();
+  const { selectedLanguage, translationLanguage, setTranslationLanguage } =
+    useLanguageStore();
   const { profile, loading, saving, saveProfile } = useProfile();
   const {
     streak,
@@ -213,6 +215,37 @@ export default function ProfileScreen() {
               color={colors.neutral.textSecondary}
             />
           </TouchableOpacity>
+        </View>
+
+        {/* Translation Language */}
+        <Text style={styles.sectionTitle}>Translation Language</Text>
+        <View style={styles.card}>
+          {TRANSLATION_LANGUAGES.map((lang) => {
+            const isSelected = translationLanguage === lang.code;
+            return (
+              <TouchableOpacity
+                key={lang.code}
+                style={styles.langRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setTranslationLanguage(lang.code);
+                  posthog.capture("translation_language_changed", {
+                    language: lang.code,
+                  });
+                }}
+              >
+                <Text style={styles.langFlag}>{lang.flag}</Text>
+                <Text style={styles.langLabel}>{lang.nativeLabel}</Text>
+                {isSelected ? (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={colors.primary.purple}
+                  />
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Statistics */}
@@ -714,6 +747,23 @@ const styles = StyleSheet.create({
   viewMoreText: {
     fontFamily: fontFamily.bold,
     fontSize: 14,
+    color: colors.neutral.textPrimary,
+  },
+  langRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutral.border,
+  },
+  langFlag: {
+    fontSize: 22,
+    marginRight: 12,
+  },
+  langLabel: {
+    flex: 1,
+    fontFamily: fontFamily.medium,
+    fontSize: 15,
     color: colors.neutral.textPrimary,
   },
   footerSpacer: {

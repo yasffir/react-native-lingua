@@ -12,6 +12,10 @@ export function getLocalUnit(languageCode: LanguageCode): Unit | null {
   return UNITS.find((u) => u.languageCode === languageCode) ?? null;
 }
 
+export function getLocalUnitsForLanguage(languageCode: LanguageCode): Unit[] {
+  return UNITS.filter((u) => u.languageCode === languageCode);
+}
+
 export function getLocalLessonsForUnit(unit: Unit): Lesson[] {
   return unit.lessonIds
     .map((id) => LESSONS.find((l) => l.id === id))
