@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  fetchAllLessonsForLanguage,
   fetchAllUnitsForLanguage,
   fetchLessonsByIds,
 } from "@/lib/curriculum/remote";
 import {
+  getAllLocalLessonsForLanguage,
   getLocalLessonsForUnit,
   getLocalUnitsForLanguage,
 } from "@/lib/curriculum/local";
@@ -26,6 +28,9 @@ export function useCurriculum(languageCode: LanguageCode | null) {
     const localUnits = getLocalUnitsForLanguage(languageCode);
     return localUnits.length > 0 ? getLocalLessonsForUnit(localUnits[0]) : [];
   });
+  const [allLessons, setAllLessons] = useState<Lesson[]>(() =>
+    languageCode ? getAllLocalLessonsForLanguage(languageCode) : []
+  );
   const [loading, setLoading] = useState(
     () => Boolean(languageCode) && isSupabaseConfigured
   );
@@ -62,6 +67,7 @@ export function useCurriculum(languageCode: LanguageCode | null) {
     if (!languageCode) {
       setUnits([]);
       setLessons([]);
+      setAllLessons([]);
       setLoading(false);
       setUnitIndex(0);
       loadedLanguageRef.current = null;
@@ -74,6 +80,7 @@ export function useCurriculum(languageCode: LanguageCode | null) {
     if (!isSupabaseConfigured || !client) {
       const localUnits = getLocalUnitsForLanguage(languageCode);
       setUnits(localUnits);
+      setAllLessons(getAllLocalLessonsForLanguage(languageCode));
       if (isInitialLoad) setUnitIndex(0);
       const activeUnit = localUnits[isInitialLoad ? 0 : unitIndex] ?? null;
       setLessons(activeUnit ? getLocalLessonsForUnit(activeUnit) : []);
@@ -93,6 +100,7 @@ export function useCurriculum(languageCode: LanguageCode | null) {
     try {
       const remoteUnits = await fetchAllUnitsForLanguage(client, languageCode);
       setUnits(remoteUnits);
+      setAllLessons(await fetchAllLessonsForLanguage(client, languageCode));
       const activeUnit = remoteUnits[isInitialLoad ? 0 : unitIndex] ?? null;
       if (activeUnit) {
         setLessons(await fetchLessonsByIds(client, activeUnit.lessonIds));
@@ -104,6 +112,7 @@ export function useCurriculum(languageCode: LanguageCode | null) {
       console.warn("[useCurriculum] Supabase failed, using local data:", e);
       const localUnits = getLocalUnitsForLanguage(languageCode);
       setUnits(localUnits);
+      setAllLessons(getAllLocalLessonsForLanguage(languageCode));
       const activeUnit = localUnits[isInitialLoad ? 0 : unitIndex] ?? null;
       setLessons(activeUnit ? getLocalLessonsForUnit(activeUnit) : []);
       setError(e instanceof Error ? e.message : "Failed to load curriculum");
@@ -126,5 +135,5 @@ export function useCurriculum(languageCode: LanguageCode | null) {
     }
   }, [unitIndex, units, loadLessonsForUnit]);
 
-  return { unit, units, lessons, loading, error, refresh, setUnitIndex };
+  return { unit, units, lessons, allLessons, loading, error, refresh, setUnitIndex };
 }

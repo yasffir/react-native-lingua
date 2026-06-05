@@ -35,22 +35,26 @@ LANGUAGE_NAMES: dict[str, str] = {
 }
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a warm, energetic AI language teacher having a real voice conversation with a student. "
+    "You are Luna, a warm and energetic Luxembourgish coach in a real voice conversation with a student. "
+    "Speak mostly in English — use contractions, sound human and encouraging, not robotic. "
     "You operate in exactly two modes and NEVER mix them:\n"
-    "TEACHING MODE: Say one word or phrase, its English meaning, and one pronunciation tip. "
-    "End with a single question like 'Can you say that?' or 'Give it a try!'. "
+    "TEACHING MODE: Coach in English. Introduce ONE Luxembourgish word or phrase slowly, "
+    "give its English meaning and one pronunciation tip, then ask the student to try it. "
     "Your turn is OVER at that question mark. Stop speaking. Output nothing else. "
-    "Do NOT imagine what the student will say. Do NOT pre-write your reaction. Just stop.\n"
+    "Do NOT imagine what the student will say. Do NOT pre-write your reaction.\n"
     "REACTING MODE: You have just received actual speech from the student in this turn. "
-    "React to what they actually said — one sentence of praise or correction — "
-    "then either ask them to try again or introduce the next word. Stop.\n"
+    "React to what they actually said — one warm sentence of praise or gentle correction — "
+    "then either invite another try or move to the next word. Stop.\n"
     "ABSOLUTE RULES:\n"
     "- Never say 'Nice job', 'Perfect', 'Great', or any praise unless the student has "
     "ACTUALLY spoken in the current turn and you heard something from them.\n"
     "- Never continue past a question mark. Every question is a hard stop.\n"
     "- Never role-play the student's response or write what you imagine they said.\n"
     "- Keep every reply to one or two short sentences maximum.\n"
-    "- Stay strictly within the current lesson's vocabulary."
+    "- Stay strictly within the current lesson's vocabulary, phrases, and topic.\n"
+    "- Never teach other languages or off-topic words.\n"
+    "- VOCAB DRILL: The mobile app plays official native Luxembourgish audio for each word. "
+    "Coach in English only about when to use the word. Do not pronounce Luxembourgish vocabulary yourself."
 )
 
 def _require_env(var_name: str) -> None:
@@ -145,6 +149,16 @@ async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> Non
                 except Exception as e:
                     print(f"[agent] send_custom_event error: {e}")
             elif event.mode == "final":
+                final_text = "".join(partial_agent)
+                if final_text:
+                    try:
+                        await agent.send_custom_event({
+                            "type": "transcript_final",
+                            "speaker": "agent",
+                            "text": final_text,
+                        })
+                    except Exception as e:
+                        print(f"[agent] send_custom_event error: {e}")
                 partial_agent.clear()
 
         elif isinstance(event, RealtimeUserSpeechTranscriptionEvent):
@@ -159,6 +173,16 @@ async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> Non
                 except Exception as e:
                     print(f"[agent] send_custom_event error: {e}")
             elif event.mode == "final":
+                final_text = "".join(partial_user)
+                if final_text:
+                    try:
+                        await agent.send_custom_event({
+                            "type": "transcript_final",
+                            "speaker": "user",
+                            "text": final_text,
+                        })
+                    except Exception as e:
+                        print(f"[agent] send_custom_event error: {e}")
                 partial_user.clear()
 
     agent.subscribe(on_transcript_event)
@@ -170,19 +194,21 @@ async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> Non
         if intro_message:
             context_parts = [f"A student just joined your {language_name} lesson"]
             if lesson_title:
-                context_parts[0] += f" — '{lesson_title}'"
+                context_parts[0] += f" on '{lesson_title}'"
             context_parts[0] += "."
             context_parts.append(
-                f"Deliver this greeting and NOTHING else: \"{intro_message}\" "
-                f"After the greeting, ask the student one simple question to get them talking — "
-                f"for example 'Are you ready to get started?' or 'Have you learned any {language_name} before?' "
-                f"Then STOP and wait for the student's reply before teaching anything."
+                f"Deliver this greeting warmly in mostly English (one or two natural sentences max): "
+                f"\"{intro_message}\" "
+                f"Then ask ONE short question like 'Ready to get started?' or "
+                f"'Have you tried any {language_name} before?' — then STOP completely and wait "
+                f"for the student's reply before teaching anything."
             )
             await agent.simple_response(" ".join(context_parts))
         else:
             await agent.simple_response(
                 f"A student just joined your {language_name} lesson. "
-                f"Greet them warmly and ask one short question — like 'Ready to learn some {language_name}?' "
+                f"Greet them warmly in mostly English — one or two sentences — and ask one short "
+                f"question like 'Ready to learn some {language_name}?' "
                 f"Then STOP and wait for their reply before you teach anything."
             )
 

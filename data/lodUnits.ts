@@ -1,11 +1,12 @@
 import { Unit } from "@/types/learning";
 
+/** Generated from LOD GWS A1 thematic grouping + core vocabulary unit. */
 export const LOD_UNITS: Unit[] = [
   {
     id: "lu-unit-2",
     languageCode: "lu",
     title: "Iessen & Gedrénks — Food & Drinks",
-    description: "Learn food and drink vocabulary in Luxembourgish",
+    description: "GWS A1 food and drink vocabulary",
     order: 2,
     lessonIds: [
       "lu-lesson-6",
@@ -22,24 +23,14 @@ export const LOD_UNITS: Unit[] = [
   {
     id: "lu-unit-3",
     languageCode: "lu",
-    title: "Famill — Family",
-    description: "Learn family vocabulary in Luxembourgish",
+    title: "Famill & Leit — Family & People",
+    description: "GWS A1 family and people vocabulary",
     order: 3,
     lessonIds: [
       "lu-lesson-14",
       "lu-lesson-15",
       "lu-lesson-16",
-      "lu-lesson-17"
-    ],
-  },
-
-  {
-    id: "lu-unit-4",
-    languageCode: "lu",
-    title: "Ëm eis erëm — Around Us",
-    description: "Colors, months, weather, and school in Luxembourgish",
-    order: 4,
-    lessonIds: [
+      "lu-lesson-17",
       "lu-lesson-18",
       "lu-lesson-19",
       "lu-lesson-20",
@@ -47,17 +38,7 @@ export const LOD_UNITS: Unit[] = [
       "lu-lesson-22",
       "lu-lesson-23",
       "lu-lesson-24",
-      "lu-lesson-25"
-    ],
-  },
-
-  {
-    id: "lu-unit-5",
-    languageCode: "lu",
-    title: "Natur — Nature",
-    description: "Fruits, vegetables, animals, and body parts in Luxembourgish",
-    order: 5,
-    lessonIds: [
+      "lu-lesson-25",
       "lu-lesson-26",
       "lu-lesson-27",
       "lu-lesson-28",
@@ -68,17 +49,153 @@ export const LOD_UNITS: Unit[] = [
   },
 
   {
-    id: "lu-unit-6",
+    id: "lu-unit-4",
     languageCode: "lu",
-    title: "Alldaag — Everyday Life",
-    description: "Vehicles, sports, holidays, and measurements in Luxembourgish",
-    order: 6,
+    title: "Ëm eis erëm — Around Us",
+    description: "Colors, months, weather, and school",
+    order: 4,
     lessonIds: [
       "lu-lesson-32",
       "lu-lesson-33",
       "lu-lesson-34",
       "lu-lesson-35",
-      "lu-lesson-36"
+      "lu-lesson-36",
+      "lu-lesson-37",
+      "lu-lesson-38"
+    ],
+  },
+
+  {
+    id: "lu-unit-5",
+    languageCode: "lu",
+    title: "Natur — Nature",
+    description: "Plants, fruits, vegetables, animals, and body",
+    order: 5,
+    lessonIds: [
+      "lu-lesson-39",
+      "lu-lesson-40",
+      "lu-lesson-41",
+      "lu-lesson-42",
+      "lu-lesson-43",
+      "lu-lesson-44"
+    ],
+  },
+
+  {
+    id: "lu-unit-6",
+    languageCode: "lu",
+    title: "Alldaag — Everyday Life",
+    description: "Transport, sports, holidays, and celebrations",
+    order: 6,
+    lessonIds: [
+      "lu-lesson-45",
+      "lu-lesson-46",
+      "lu-lesson-47",
+      "lu-lesson-48",
+      "lu-lesson-49",
+      "lu-lesson-50",
+      "lu-lesson-51",
+      "lu-lesson-52"
+    ],
+  },
+
+  {
+    id: "lu-unit-7",
+    languageCode: "lu",
+    title: "Aarbecht & Gesondheet — Work & Health",
+    description: "Jobs, medicine, church, and computing",
+    order: 7,
+    lessonIds: [
+      "lu-lesson-53",
+      "lu-lesson-54",
+      "lu-lesson-55",
+      "lu-lesson-56",
+      "lu-lesson-57",
+      "lu-lesson-58",
+      "lu-lesson-59"
+    ],
+  },
+
+  {
+    id: "lu-unit-8",
+    languageCode: "lu",
+    title: "Sprooch & Ausdréck — Language & Expressions",
+    description: "Exclamations, interjections, and misc. expressions",
+    order: 8,
+    lessonIds: [
+      "lu-lesson-60",
+      "lu-lesson-61",
+      "lu-lesson-62",
+      "lu-lesson-63",
+      "lu-lesson-64"
+    ],
+  },
+
+  {
+    id: "lu-unit-9",
+    languageCode: "lu",
+    title: "A1 Wuertlëscht — Core A1 Vocabulary",
+    description: "Remaining words from Schwätzt Dir Lëtzebuergesch? Niveau A1 (Wuertschatz)",
+    order: 9,
+    lessonIds: [
+      "lu-lesson-65",
+      "lu-lesson-66",
+      "lu-lesson-67",
+      "lu-lesson-68",
+      "lu-lesson-69",
+      "lu-lesson-70",
+      "lu-lesson-71",
+      "lu-lesson-72",
+      "lu-lesson-73",
+      "lu-lesson-74",
+      "lu-lesson-75",
+      "lu-lesson-76",
+      "lu-lesson-77",
+      "lu-lesson-78",
+      "lu-lesson-79",
+      "lu-lesson-80",
+      "lu-lesson-81",
+      "lu-lesson-82",
+      "lu-lesson-83",
+      "lu-lesson-84",
+      "lu-lesson-85",
+      "lu-lesson-86",
+      "lu-lesson-87",
+      "lu-lesson-88",
+      "lu-lesson-89",
+      "lu-lesson-90",
+      "lu-lesson-91",
+      "lu-lesson-92",
+      "lu-lesson-93",
+      "lu-lesson-94",
+      "lu-lesson-95",
+      "lu-lesson-96",
+      "lu-lesson-97",
+      "lu-lesson-98",
+      "lu-lesson-99",
+      "lu-lesson-100",
+      "lu-lesson-101",
+      "lu-lesson-102",
+      "lu-lesson-103",
+      "lu-lesson-104",
+      "lu-lesson-105",
+      "lu-lesson-106",
+      "lu-lesson-107",
+      "lu-lesson-108",
+      "lu-lesson-109",
+      "lu-lesson-110",
+      "lu-lesson-111",
+      "lu-lesson-112",
+      "lu-lesson-113",
+      "lu-lesson-114",
+      "lu-lesson-115",
+      "lu-lesson-116",
+      "lu-lesson-117",
+      "lu-lesson-118",
+      "lu-lesson-119",
+      "lu-lesson-120",
+      "lu-lesson-121",
+      "lu-lesson-122"
     ],
   }
 ];

@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useMemo } from "react";
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -15,6 +17,13 @@ import {
 } from "react-native-safe-area-context";
 
 import { colors, fontFamily } from "@/constants/theme";
+import { UsagePhrasesSection } from "@/components/UsagePhrasesSection";
+import { useLodEntry } from "@/hooks/useLodEntry";
+import {
+  buildUsagePhrases,
+  toVocabForUsage,
+} from "@/lib/aiTeacher/buildUsagePhrases";
+import { playWord } from "@/lib/audio";
 import type { TranslationExplain } from "@/types/lessonExercise";
 
 const DUO_BLUE = "#1CB0F6";
@@ -22,15 +31,27 @@ const DUO_BLUE = "#1CB0F6";
 interface ExplainAnswerModalProps {
   visible: boolean;
   explain: TranslationExplain;
+  lodId?: string;
   onClose: () => void;
 }
 
 /** Modal content must live under SafeAreaProvider — RN Modal uses a separate window. */
 function ExplainAnswerModalBody({
   explain,
+  lodId,
   onClose,
 }: Omit<ExplainAnswerModalProps, "visible">) {
   const insets = useSafeAreaInsets();
+  const { entry, loading } = useLodEntry(lodId);
+
+  const usagePhrases = useMemo(() => {
+    const item = toVocabForUsage(
+      explain.highlightWord,
+      explain.meaning,
+      lodId
+    );
+    return buildUsagePhrases(item, entry, undefined, explain.examples);
+  }, [entry, explain.examples, explain.highlightWord, explain.meaning, lodId]);
 
   return (
     <View
@@ -59,9 +80,20 @@ function ExplainAnswerModalBody({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.chip}>
-          <Text style={styles.chipText}>{explain.highlightWord}</Text>
+        <View style={styles.chipRow}>
+          <View style={styles.chip}>
+            <Text style={styles.chipText}>{explain.highlightWord}</Text>
+          </View>
+          {lodId ? (
+            <TouchableOpacity hitSlop={10} onPress={() => void playWord(lodId)}>
+              <Ionicons name="volume-high" size={24} color={DUO_BLUE} />
+            </TouchableOpacity>
+          ) : null}
         </View>
+
+        {entry?.ipa ? (
+          <Text style={styles.ipa}>IPA: /{entry.ipa}/</Text>
+        ) : null}
 
         <View style={styles.card}>
           <Text style={styles.meaning}>
@@ -90,6 +122,12 @@ function ExplainAnswerModalBody({
             </TouchableOpacity>
           </View>
         </View>
+
+        <UsagePhrasesSection
+          phrases={usagePhrases}
+          loading={loading}
+          accentColor={DUO_BLUE}
+        />
       </ScrollView>
 
       <Pressable
@@ -108,6 +146,7 @@ function ExplainAnswerModalBody({
 export function ExplainAnswerModal({
   visible,
   explain,
+  lodId,
   onClose,
 }: ExplainAnswerModalProps) {
   return (
@@ -118,7 +157,11 @@ export function ExplainAnswerModal({
       statusBarTranslucent={false}
     >
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-        <ExplainAnswerModalBody explain={explain} onClose={onClose} />
+        <ExplainAnswerModalBody
+          explain={explain}
+          lodId={visible ? lodId : undefined}
+          onClose={onClose}
+        />
       </SafeAreaProvider>
     </Modal>
   );
@@ -154,6 +197,12 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 16,
   },
+  chipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
   chip: {
     alignSelf: "flex-start",
     backgroundColor: "#E8F7FF",
@@ -162,12 +211,17 @@ const styles = StyleSheet.create({
     borderColor: "#B8E6FF",
     paddingHorizontal: 14,
     paddingVertical: 8,
-    marginBottom: 16,
   },
   chipText: {
     fontFamily: fontFamily.bold,
     fontSize: 15,
     color: DUO_BLUE,
+  },
+  ipa: {
+    fontFamily: fontFamily.regular,
+    fontSize: 14,
+    color: colors.neutral.textSecondary,
+    marginBottom: 12,
   },
   card: {
     borderWidth: 1,
@@ -175,6 +229,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     backgroundColor: "#fff",
+    marginBottom: 14,
   },
   meaning: {
     fontFamily: fontFamily.regular,
@@ -188,6 +243,7 @@ const styles = StyleSheet.create({
     color: DUO_BLUE,
   },
   example: {
+    flex: 1,
     fontFamily: fontFamily.regular,
     fontSize: 15,
     color: colors.neutral.textPrimary,

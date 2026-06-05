@@ -37,6 +37,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# LOD fetch cache (regenerate with bun run generate:lod-lessons)
+data/lodCache/
+
 app-example
 
 # generated native folders

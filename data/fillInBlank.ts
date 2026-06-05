@@ -1,22 +1,9 @@
-import type { FillBlankVisual } from "@/types/lessonExercise";
+import { LOD_FILL_IN_BLANK } from "@/data/lodFillInBlank";
+import type { FillInBlankConfig } from "@/types/exerciseContent";
 
-export interface FillInBlankConfig {
-  /** Sentence split around the blank, e.g. ["Ech hunn e ", " an e Katz."] */
-  before: string;
-  after: string;
-  correctWord: string;
-  bank: string[];
-  fullSentence: string;
-  englishHint: string;
-  visual: FillBlankVisual;
-  explain?: {
-    highlightWord: string;
-    meaning: string;
-    examples: string[];
-  };
-}
+export type { FillInBlankConfig } from "@/types/exerciseContent";
 
-export const LESSON_FILL_IN_BLANK: Record<string, FillInBlankConfig[]> = {
+const HAND_CRAFTED_FILL_IN_BLANK: Record<string, FillInBlankConfig[]> = {
   "lu-lesson-1": [
     {
       before: "",
@@ -105,4 +92,9 @@ export const LESSON_FILL_IN_BLANK: Record<string, FillInBlankConfig[]> = {
       visual: "cafe",
     },
   ],
+};
+
+export const LESSON_FILL_IN_BLANK: Record<string, FillInBlankConfig[]> = {
+  ...LOD_FILL_IN_BLANK,
+  ...HAND_CRAFTED_FILL_IN_BLANK,
 };

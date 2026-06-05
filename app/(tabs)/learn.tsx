@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   Image as RNImage,
@@ -18,6 +18,8 @@ import { images } from "@/constants/images";
 import { colors } from "@/constants/theme";
 import { useCurriculum } from "@/hooks/useCurriculum";
 import { useLearningProgress } from "@/hooks/useLearningProgress";
+import { useWarmLessonLodCache } from "@/hooks/useWarmLessonLodCache";
+import { getCurrentUnitIndex } from "@/lib/curriculum/getCurrentUnitIndex";
 import { useLanguageStore } from "@/store/languageStore";
 
 export default function LearnScreen() {
@@ -26,15 +28,73 @@ export default function LearnScreen() {
   const { completedLessonIds, refresh: refreshProgress } =
     useLearningProgress();
 
-  useFocusEffect(
-    useCallback(() => {
-      refreshProgress();
-    }, [refreshProgress])
-  );
+  useWarmLessonLodCache();
+
   const { unit, units, lessons, loading, setUnitIndex } =
     useCurriculum(selectedLanguage);
 
   const unitScrollRef = useRef<ScrollView>(null);
+  const unitRowRef = useRef<View>(null);
+  const unitPillRefs = useRef<(View | null)[]>([]);
+  const unitScrollViewportWidth = useRef(0);
+
+  const currentUnitIndex = useMemo(
+    () => getCurrentUnitIndex(units, completedLessonIds),
+    [units, completedLessonIds]
+  );
+
+  const scrollUnitIntoView = useCallback((index: number, animated = true) => {
+    const pill = unitPillRefs.current[index];
+    const row = unitRowRef.current;
+    const scroll = unitScrollRef.current;
+    if (!pill || !row || !scroll || index < 0) return;
+
+    pill.measureLayout(
+      row,
+      (x, _y, width) => {
+        const viewport = unitScrollViewportWidth.current;
+        const centeredOffset =
+          viewport > 0 ? x - (viewport - width) / 2 : x - 20;
+        scroll.scrollTo({
+          x: Math.max(0, centeredOffset),
+          animated,
+        });
+      },
+      () => {
+        scroll.scrollTo({
+          x: Math.max(0, index * 88 - 40),
+          animated,
+        });
+      }
+    );
+  }, []);
+
+  useEffect(() => {
+    if (units.length === 0) return;
+    setUnitIndex(currentUnitIndex);
+    const timer = setTimeout(() => {
+      scrollUnitIntoView(currentUnitIndex);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [currentUnitIndex, scrollUnitIntoView, setUnitIndex, units.length]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProgress();
+      const timer = setTimeout(() => {
+        scrollUnitIntoView(currentUnitIndex);
+      }, 150);
+      return () => clearTimeout(timer);
+    }, [refreshProgress, scrollUnitIntoView, currentUnitIndex])
+  );
+
+  const handleSelectUnit = useCallback(
+    (index: number) => {
+      setUnitIndex(index);
+      requestAnimationFrame(() => scrollUnitIntoView(index));
+    },
+    [scrollUnitIntoView, setUnitIndex]
+  );
 
   const completedCount = lessons.filter((l) =>
     completedLessonIds.includes(l.id)
@@ -121,37 +181,54 @@ export default function LearnScreen() {
 
       {/* Unit selector */}
       {units.length > 1 && (
-        <View className="mb-3">
+        <View
+          className="mb-3"
+          onLayout={(event) => {
+            unitScrollViewportWidth.current = event.nativeEvent.layout.width;
+          }}
+        >
           <ScrollView
             ref={unitScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.unitSelectorContent}
           >
-            {units.map((u, i) => {
-              const isSelected = i === selectedIndex;
-              return (
-                <TouchableOpacity
-                  key={u.id}
-                  onPress={() => setUnitIndex(i)}
-                  style={[
-                    styles.unitPill,
-                    isSelected && styles.unitPillSelected,
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.unitPillText,
-                      isSelected && styles.unitPillTextSelected,
-                    ]}
-                    numberOfLines={1}
+            <View ref={unitRowRef} style={styles.unitSelectorContent}>
+              {units.map((u, i) => {
+                const isSelected = i === selectedIndex;
+                const isCurrent = i === currentUnitIndex;
+                return (
+                  <View
+                    key={u.id}
+                    ref={(element) => {
+                      unitPillRefs.current[i] = element;
+                    }}
+                    collapsable={false}
                   >
-                    Unit {u.order}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <TouchableOpacity
+                      onPress={() => handleSelectUnit(i)}
+                      style={[
+                        styles.unitPill,
+                        isSelected && styles.unitPillSelected,
+                        isCurrent && !isSelected && styles.unitPillCurrent,
+                      ]}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.unitPillText,
+                          isSelected && styles.unitPillTextSelected,
+                          isCurrent && !isSelected && styles.unitPillTextCurrent,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        Unit {u.order}
+                        {isCurrent ? " · Current" : ""}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
           </ScrollView>
         </View>
       )}
@@ -233,6 +310,7 @@ const styles = StyleSheet.create({
     height: 110,
   },
   unitSelectorContent: {
+    flexDirection: "row",
     paddingHorizontal: 20,
     gap: 8,
   },
@@ -248,6 +326,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.purple,
     borderColor: colors.primary.purple,
   },
+  unitPillCurrent: {
+    borderColor: colors.primary.purple,
+    backgroundColor: "#F8F7FF",
+  },
   unitPillText: {
     fontFamily: "Poppins-SemiBold",
     fontSize: 13,
@@ -255,5 +337,8 @@ const styles = StyleSheet.create({
   },
   unitPillTextSelected: {
     color: "#FFFFFF",
+  },
+  unitPillTextCurrent: {
+    color: colors.primary.purple,
   },
 });

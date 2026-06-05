@@ -31,7 +31,19 @@ Only then run the seed (step 3).
 
 If you see `column profiles.username does not exist` or `PGRST204`, run **004** and in Supabase go to **Project Settings → API → Reload schema** (or wait ~1 minute after `NOTIFY pgrst, 'reload schema'`).
 
-## 3. Seed lesson content
+## 3. Exercise templates table (migration 006)
+
+Mixed lesson exercises (fill-in-blank, chat, matching pairs, etc.) live in **`exercise_step_templates`**.
+
+| Stored in Supabase | Stored in app (bundled) |
+|--------------------|-------------------------|
+| `languages`, `units`, `lessons` (titles, vocab, phrases) | `assets/audio/` + `data/audioMap.ts` |
+| `exercise_step_templates` (step type + JSON config) | Used as **fallback** when DB is empty or offline |
+| `lesson_completions`, stats, achievements | — |
+
+**Existing projects:** run `supabase/migrations/006_exercise_step_templates.sql` in the SQL Editor (or re-run full `schema.sql`), then seed.
+
+## 4. Seed curriculum + exercises
 
 From the project root (with `.env` loaded):
 
@@ -39,11 +51,25 @@ From the project root (with `.env` loaded):
 npm run seed:supabase
 ```
 
-This uploads everything from `data/languages.ts`, `data/units.ts`, and `data/lessons.ts`.
+This uploads:
 
-Re-run the seed whenever you change local lesson files.
+- `data/languages.ts`, `data/units.ts`, `data/lessons.ts`
+- All exercise templates from `lib/curriculum/exerciseTemplates/collect.ts` (sourced from `data/fillInBlank.ts`, `chatDialogues.ts`, `matchingPairs.ts`, `translationSentences.ts`, plus auto-generated vocab steps per lesson)
 
-## 4. Clerk ↔ Supabase JWT (required for progress sync)
+Re-run the seed whenever you change local lesson or exercise files (including after regenerating LOD curriculum).
+
+### Full GWS A1 curriculum (867 words)
+
+The app can generate the complete [LOD GWS A1 vocabulary list](https://lod.lu/categories/category/GWS%20A1/1) (*Schwätzt Dir Lëtzebuergesch? – Niveau A1*) into `data/lodLessons.ts`, units, matching pairs, and exercise configs:
+
+```bash
+npm run generate:lod-lessons
+npm run seed:supabase
+```
+
+This fetches live data from `https://lod.lu/api/lb`, caches entries under `data/lodCache/` (gitignored), and produces **117 LOD lessons** (+ 5 hand-crafted Unit 1 lessons = **122 total**). LOD pronunciation streams at runtime via each word’s `audioId`; Unit 1 keeps bundled MP3s in `assets/audio/`.
+
+## 5. Clerk ↔ Supabase JWT (required for progress sync)
 
 The app writes XP and lesson completions using Row Level Security. You need a Clerk JWT that Supabase accepts.
 
@@ -69,7 +95,7 @@ The app writes XP and lesson completions using Row Level Security. You need a Cl
 
 Without this template, lessons still load (public read), but progress may not save.
 
-## 5. Clerk webhooks (profiles)
+## 6. Clerk webhooks (profiles)
 
 ### Localhost does not work in Clerk
 
@@ -128,6 +154,7 @@ The handler is `app/api/clerk-webhook+api.ts` — it upserts/deletes `profiles` 
 | `languages` | Luxembourgish (and future languages) |
 | `units` | Course units per language |
 | `lessons` | Full lesson JSON (vocabulary, activities, AI prompts) |
+| `exercise_step_templates` | Mixed exercise configs per lesson (fill-in-blank, chat, matching pairs, vocab-derived) |
 | `users` | Clerk user mirror (name, username, bio, language) |
 | `user_learning_stats` | XP, streak, daily goal, `last_activity_date` |
 | `xp_daily` | Per-day XP totals (7-day chart on profile) |
@@ -148,4 +175,4 @@ Until 005 is applied, the app still loads basic XP/streak from `user_learning_st
 
 ## Fallback without Supabase
 
-If `EXPO_PUBLIC_SUPABASE_URL` / anon key are missing, the app reads from `data/*.ts` and keeps progress in memory only (no cloud sync).
+If `EXPO_PUBLIC_SUPABASE_URL` / anon key are missing, the app reads curriculum and exercise templates from bundled `data/*.ts` and keeps progress in memory only (no cloud sync).

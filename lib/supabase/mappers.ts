@@ -1,5 +1,14 @@
-import type { LanguageRow, LessonRow, UnitRow } from "@/lib/supabase/types";
+import type {
+  ExerciseStepTemplateRow,
+  LanguageRow,
+  LessonRow,
+  UnitRow,
+} from "@/lib/supabase/types";
 import type { Language, Lesson, Unit } from "@/types/learning";
+import type {
+  ExerciseStepTemplate,
+  ExerciseTemplateType,
+} from "@/types/exerciseTemplate";
 
 export function mapLanguageRow(row: LanguageRow): Language {
   return {
@@ -58,6 +67,30 @@ export function unitToRow(unit: Unit): UnitRow {
     description: unit.description,
     order_index: unit.order,
     lesson_ids: unit.lessonIds,
+  };
+}
+
+export function mapExerciseTemplateRow(
+  row: ExerciseStepTemplateRow
+): ExerciseStepTemplate {
+  return {
+    id: row.id,
+    lessonId: row.lesson_id,
+    stepType: row.step_type as ExerciseTemplateType,
+    sortOrder: row.sort_order,
+    config: row.config as ExerciseStepTemplate["config"],
+  };
+}
+
+export function exerciseTemplateToRow(
+  template: ExerciseStepTemplate
+): ExerciseStepTemplateRow {
+  return {
+    id: template.id,
+    lesson_id: template.lessonId,
+    step_type: template.stepType,
+    sort_order: template.sortOrder,
+    config: template.config as Record<string, unknown>,
   };
 }
 

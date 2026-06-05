@@ -1,4 +1,7 @@
-import { LESSON_CHAT_DIALOGUES } from "@/data/chatDialogues";
+import {
+  LESSON_CHAT_DIALOGUES,
+  type ChatDialogueConfig,
+} from "@/data/chatDialogues";
 import { shuffle } from "@/lib/lessonExercises/shuffle";
 import type { Lesson, VocabularyItem } from "@/types/learning";
 import type {
@@ -20,9 +23,9 @@ function findPromptAudioId(
   return undefined;
 }
 
-function toStep(
+export function chatStepFromConfig(
   lessonId: string,
-  config: (typeof LESSON_CHAT_DIALOGUES)[string][number],
+  config: ChatDialogueConfig,
   index: number,
   vocab: VocabularyItem[] = []
 ): CompleteChatExerciseStep {
@@ -56,5 +59,7 @@ export function buildChatSteps(lesson: Lesson): CompleteChatExerciseStep[] {
   const dialogues = LESSON_CHAT_DIALOGUES[lesson.id] ?? [];
   return shuffle(dialogues)
     .slice(0, MAX_CHAT_PER_LESSON)
-    .map((config, index) => toStep(lesson.id, config, index, lesson.vocabulary));
+    .map((config, index) =>
+      chatStepFromConfig(lesson.id, config, index, lesson.vocabulary)
+    );
 }

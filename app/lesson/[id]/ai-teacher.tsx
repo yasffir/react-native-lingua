@@ -15,7 +15,7 @@ try {
 }
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -27,10 +27,21 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { images } from "@/constants/images";
+import {
+  VocabDrillCard,
+  type VocabDrillPhase,
+} from "@/components/ai-teacher/VocabDrillCard";
+import { LiveCaptionsPanel } from "@/components/ai-teacher/LiveCaptionsPanel";
 import { colors } from "@/constants/theme";
+import { buildUsagePhrases } from "@/lib/aiTeacher/buildUsagePhrases";
+import { matchesSpokenWord } from "@/lib/aiTeacher/matchSpokenWord";
+import { playWord, setAudioPlayContext } from "@/lib/audio";
+import { useLodEntry } from "@/hooks/useLodEntry";
+import { useLiveCaptions } from "@/hooks/useLiveCaptions";
 import { useLearningProgress } from "@/hooks/useLearningProgress";
 import { useLesson } from "@/hooks/useLesson";
 import { posthog } from "@/lib/posthog";
+import { useDailyPlanStore } from "@/store/dailyPlanStore";
 import { useLanguageStore } from "@/store/languageStore";
 
 type CallStatus = "idle" | "connecting" | "joined" | "error";
@@ -38,6 +49,9 @@ type AgentStatus = "idle" | "connecting" | "connected" | "failed";
 
 const AGENT_USER_ID = "ai-teacher";
 const MIN_LESSON_SECONDS = 30;
+
+const VOCAB_DRILL_PROMPT_SUFFIX =
+  "\n\nVOCAB DRILL: The mobile app plays official native Luxembourgish audio for each vocabulary word and shows real example sentences from the LOD dictionary. Coach the student in English only — briefly explain WHEN to use the word (café, family, greetings, etc.) in one short sentence. Do not pronounce Luxembourgish vocabulary yourself; wait while the student repeats after the native audio clip.";
 
 export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,6 +66,9 @@ export default function LessonScreen() {
   const [call, setCall] = useState<Call | null>(null);
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [agentStatus, setAgentStatus] = useState<AgentStatus>("idle");
+  const [agentErrorMessage, setAgentErrorMessage] = useState<string | null>(
+    null
+  );
 
   const callRef = useRef<Call | null>(null);
   const clientRef = useRef<StreamVideoClient | null>(null);
@@ -132,7 +149,8 @@ export default function LessonScreen() {
             ),
             phrases: lesson.phrases.map((p) => p.text),
             topics: lesson.aiTeacherPrompt.topics,
-            system_prompt: lesson.aiTeacherPrompt.systemPrompt,
+            system_prompt:
+              lesson.aiTeacherPrompt.systemPrompt + VOCAB_DRILL_PROMPT_SUFFIX,
             intro_message: lesson.aiTeacherPrompt.introMessage,
           },
         });
@@ -165,6 +183,7 @@ export default function LessonScreen() {
 
   async function startAgentSession(callId: string) {
     setAgentStatus("connecting");
+    setAgentErrorMessage(null);
     try {
       const res = await fetch("/api/agent-session", {
         method: "POST",
@@ -178,11 +197,17 @@ export default function LessonScreen() {
         agentConnectedRef.current = true;
       } else {
         const errBody = await res.json().catch(() => ({}));
+        const message =
+          typeof errBody.error === "string"
+            ? errBody.error
+            : "Agent session failed";
         console.error("[lesson] agent-session failed:", res.status, errBody);
+        setAgentErrorMessage(message);
         setAgentStatus("failed");
       }
     } catch (err) {
       console.error("[lesson] agent-session network error:", err);
+      setAgentErrorMessage("Could not reach the agent API.");
       setAgentStatus("failed");
     }
   }
@@ -216,6 +241,8 @@ export default function LessonScreen() {
       }
       return;
     }
+
+    useDailyPlanStore.getState().markComplete("ai-conversation");
 
     if (completedLessonIdsRef.current.includes(currentLesson.id)) {
       lessonCompletedRef.current = true;
@@ -343,6 +370,7 @@ export default function LessonScreen() {
           <StreamCall call={call}>
             <ActiveCallContent
               agentStatus={agentStatus}
+              agentErrorMessage={agentErrorMessage}
               lesson={lesson}
               call={call}
               onRetry={() => startAgentSession(call.id)}
@@ -429,16 +457,16 @@ export default function LessonScreen() {
   );
 }
 
-type PartialCaption = { speaker: "agent" | "user"; text: string };
-
-// Rendered inside StreamCall — accesses live captions and mic state via hooks
+// Rendered inside StreamCall
 function ActiveCallContent({
   agentStatus,
+  agentErrorMessage,
   lesson,
   call,
   onRetry,
 }: {
   agentStatus: AgentStatus;
+  agentErrorMessage: string | null;
   lesson: Lesson;
   call: Call;
   onRetry: () => void;
@@ -447,54 +475,140 @@ function ActiveCallContent({
   const { microphone } = useMicrophoneState();
   const captions = useCallClosedCaptions();
   const [isHeld, setIsHeld] = useState(false);
-  const [partial, setPartial] = useState<PartialCaption | null>(null);
-  const partialTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [vocabIndex, setVocabIndex] = useState(0);
+  const [drillPhase, setDrillPhase] = useState<VocabDrillPhase>("loading");
+  const [lastHeard, setLastHeard] = useState<string>("");
+  const drillStartedRef = useRef(false);
+  const vocabPlayRequestRef = useRef(0);
 
-  // Receive real-time partial transcript deltas from the Python agent via Stream custom events
-  interface StreamCustomEvent {
-    custom?: {
-      type?: string;
-      speaker?: "agent" | "user";
-      text?: string;
+  const vocabItems = lesson.vocabulary;
+  const hasVocabDrill = vocabItems.length > 0;
+  const currentVocab = vocabItems[vocabIndex] ?? null;
+  const drillComplete = drillPhase === "complete";
+
+  const { entry: lodEntry, loading: lodLoading } = useLodEntry(
+    hasVocabDrill ? currentVocab?.audioId : undefined
+  );
+
+  const usagePhrases = useMemo(
+    () =>
+      buildUsagePhrases(
+        currentVocab,
+        lodEntry,
+        lesson.aiTeacherPrompt.topics
+      ),
+    [currentVocab, lodEntry, lesson.aiTeacherPrompt.topics]
+  );
+
+  const { lines: captionLines, getLatestUserSpeech } = useLiveCaptions({
+    call,
+    captions,
+    agentUserId: AGENT_USER_ID,
+    enabled: agentStatus === "connected",
+  });
+
+  useEffect(() => {
+    setAudioPlayContext("duringCall");
+    return () => setAudioPlayContext("default");
+  }, []);
+
+  useEffect(() => {
+    if (agentStatus !== "connected" || !hasVocabDrill || drillComplete) return;
+    if (!currentVocab) return;
+
+    let cancelled = false;
+    const requestId = ++vocabPlayRequestRef.current;
+    setDrillPhase("loading");
+
+    void playWord(currentVocab.audioId, { context: "duringCall" }).then(
+      (played) => {
+        if (cancelled || requestId !== vocabPlayRequestRef.current) return;
+        setDrillPhase("speak");
+        if (!played) {
+          console.warn("[ai-teacher] vocab audio failed to play");
+        }
+      }
+    );
+
+    return () => {
+      cancelled = true;
     };
+  }, [agentStatus, vocabIndex, currentVocab?.audioId, hasVocabDrill, drillComplete]);
+
+  useEffect(() => {
+    if (
+      agentStatus === "connected" &&
+      hasVocabDrill &&
+      !drillStartedRef.current
+    ) {
+      drillStartedRef.current = true;
+      posthog.capture("ai_teacher_vocab_drill_started", {
+        lesson_id: lesson.id,
+        word_count: vocabItems.length,
+      });
+    }
+  }, [agentStatus, hasVocabDrill, lesson.id, vocabItems.length]);
+
+  function replayCurrentWord() {
+    if (!currentVocab) return;
+    setDrillPhase("loading");
+    void playWord(currentVocab.audioId, { context: "duringCall" }).then(() =>
+      setDrillPhase("speak")
+    );
   }
 
-  useEffect(() => {
-    const unsubscribe = call.on("custom", (event: StreamCustomEvent) => {
-      const data = event?.custom ?? {};
-      if (data.type === "transcript_partial" && data.text) {
-        setPartial({ speaker: data.speaker ?? "agent", text: data.text });
-        // Auto-clear if no further deltas arrive (speech ended without a final event)
-        if (partialTimerRef.current) clearTimeout(partialTimerRef.current);
-        partialTimerRef.current = setTimeout(() => setPartial(null), 3000);
-      }
-    });
-    return () => {
-      unsubscribe();
-      if (partialTimerRef.current) clearTimeout(partialTimerRef.current);
-    };
-  }, [call]);
-
-  // Clear partial once a committed caption lands (the final transcript is now in captions)
-  useEffect(() => {
-    if (captions.length > 0) {
-      setPartial(null);
-      if (partialTimerRef.current) clearTimeout(partialTimerRef.current);
+  function advanceVocab() {
+    if (vocabIndex + 1 >= vocabItems.length) {
+      setDrillPhase("complete");
+      posthog.capture("ai_teacher_vocab_drill_completed", {
+        lesson_id: lesson.id,
+        word_count: vocabItems.length,
+      });
+      return;
     }
-  }, [captions]);
+    setVocabIndex((index) => index + 1);
+    setLastHeard("");
+  }
 
-  const isReady = agentStatus === "connected";
-  const showCaptions = partial !== null || captions.length > 0;
+  const isReady =
+    agentStatus === "connected" &&
+    (!hasVocabDrill || drillPhase === "speak" || drillComplete);
+  const showLiveCaptions = agentStatus === "connected";
 
   function handlePressIn() {
     if (!isReady) return;
+    if (hasVocabDrill && !drillComplete && drillPhase !== "speak") return;
     setIsHeld(true);
     microphone.enable();
   }
 
-  function handlePressOut() {
+  async function handlePressOut() {
     setIsHeld(false);
     microphone.disable();
+
+    if (!hasVocabDrill || drillPhase !== "speak" || !currentVocab) return;
+
+    setDrillPhase("checking");
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const heard = getLatestUserSpeech();
+    setLastHeard(heard || "—");
+
+    if (matchesSpokenWord(heard, currentVocab.word)) {
+      setDrillPhase("correct");
+      posthog.capture("ai_teacher_vocab_word_matched", {
+        lesson_id: lesson.id,
+        word: currentVocab.word,
+        heard,
+      });
+    } else {
+      setDrillPhase("retry");
+      posthog.capture("ai_teacher_vocab_word_retry", {
+        lesson_id: lesson.id,
+        word: currentVocab.word,
+        heard,
+      });
+    }
   }
 
   return (
@@ -510,129 +624,67 @@ function ActiveCallContent({
           ]}
         />
 
-        {/* Live captions: partial (streaming) takes priority, then committed */}
-        {showCaptions ? (
-          <View style={styles.captionsContainer}>
-            {partial ? (
-              // Partial caption — grows word by word in real time
-              <View
-                style={[
-                  styles.captionBubble,
-                  partial.speaker === "agent"
-                    ? styles.captionBubbleTeacher
-                    : styles.captionBubbleUser,
-                  styles.captionBubblePartial,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.captionSpeaker,
-                    partial.speaker === "agent"
-                      ? styles.captionSpeakerTeacher
-                      : styles.captionSpeakerUser,
-                  ]}
-                >
-                  {partial.speaker === "agent" ? "AI Teacher" : "You"}
-                </Text>
-                <Text
-                  style={[
-                    styles.captionText,
-                    partial.speaker === "agent"
-                      ? styles.captionTextTeacher
-                      : styles.captionTextUser,
-                  ]}
-                >
-                  {partial.text}
-                </Text>
-              </View>
-            ) : (
-              // Committed captions from Stream's closed captions service
-              captions.map((caption: CallClosedCaption, i: number) => {
-                const isTeacher = caption.user?.id === AGENT_USER_ID;
-                return (
-                  <View
-                    key={`${caption.start_time}-${i}`}
-                    style={[
-                      styles.captionBubble,
-                      isTeacher
-                        ? styles.captionBubbleTeacher
-                        : styles.captionBubbleUser,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.captionSpeaker,
-                        isTeacher
-                          ? styles.captionSpeakerTeacher
-                          : styles.captionSpeakerUser,
-                      ]}
-                    >
-                      {isTeacher ? "AI Teacher" : (caption.user?.name ?? "You")}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.captionText,
-                        isTeacher
-                          ? styles.captionTextTeacher
-                          : styles.captionTextUser,
-                      ]}
-                    >
-                      {caption.text}
-                    </Text>
-                  </View>
-                );
-              })
-            )}
+        <LiveCaptionsPanel
+          lines={captionLines}
+          visible={showLiveCaptions}
+          emptyHint={
+            hasVocabDrill && !drillComplete
+              ? "Luna's tips and your speech will show here live."
+              : "Live captions appear here as you and Luna speak."
+          }
+        />
+
+        {agentStatus === "connecting" && (
+          <View style={styles.responseBubble}>
+            <ActivityIndicator
+              size="small"
+              color={colors.primary.purple}
+              style={{ marginRight: 12 }}
+            />
+            <View style={styles.responseBubbleText}>
+              <Text style={styles.responsePrimary}>Starting lesson...</Text>
+              <Text style={styles.responseSecondary}>
+                Your AI teacher is joining
+              </Text>
+            </View>
           </View>
-        ) : (
-          <>
-            {agentStatus === "connecting" && (
-              <View style={styles.responseBubble}>
-                <ActivityIndicator
-                  size="small"
-                  color={colors.primary.purple}
-                  style={{ marginRight: 12 }}
-                />
-                <View style={styles.responseBubbleText}>
-                  <Text style={styles.responsePrimary}>Starting lesson...</Text>
-                  <Text style={styles.responseSecondary}>
-                    Your AI teacher is joining
-                  </Text>
-                </View>
-              </View>
-            )}
+        )}
 
-            {agentStatus === "connected" && (
-              <View style={styles.responseBubble}>
-                <View style={styles.responseBubbleText}>
-                  <Text style={styles.responsePrimary} numberOfLines={1}>
-                    {lesson.aiTeacherPrompt.introMessage.split("!")[0]}!
-                  </Text>
-                  <Text style={styles.responseSecondary}>
-                    Hold the mic to respond 🎙️
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {agentStatus === "failed" && (
-              <View style={styles.responseBubble}>
-                <View style={styles.responseBubbleText}>
-                  <Text style={styles.responsePrimary}>Agent unavailable</Text>
-                  <Text style={styles.responseSecondary}>Tap to retry</Text>
-                </View>
-                <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-                  <Ionicons
-                    name="refresh-outline"
-                    size={20}
-                    color={colors.primary.purple}
-                  />
-                </TouchableOpacity>
-              </View>
-            )}
-          </>
+        {agentStatus === "failed" && (
+          <View style={styles.responseBubble}>
+            <View style={styles.responseBubbleText}>
+              <Text style={styles.responsePrimary}>Agent unavailable</Text>
+              <Text style={styles.responseSecondary}>
+                {agentErrorMessage?.includes("vision-agent:serve")
+                  ? "Run bun run vision-agent:serve in another terminal, then tap retry."
+                  : agentErrorMessage ?? "Tap to retry"}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+              <Ionicons
+                name="refresh-outline"
+                size={20}
+                color={colors.primary.purple}
+              />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
+
+      {hasVocabDrill && agentStatus === "connected" ? (
+        <VocabDrillCard
+          item={currentVocab ?? vocabItems[vocabItems.length - 1]!}
+          index={drillComplete ? vocabItems.length - 1 : vocabIndex}
+          total={vocabItems.length}
+          phase={drillPhase}
+          usagePhrases={usagePhrases}
+          usageLoading={lodLoading}
+          lastHeard={lastHeard}
+          onReplay={replayCurrentWord}
+          onNext={advanceVocab}
+          onSkip={advanceVocab}
+        />
+      ) : null}
 
       {/* Push-to-talk */}
       <View style={styles.pushToTalkSection}>
@@ -686,9 +738,15 @@ function ActiveCallContent({
           >
             {isHeld
               ? "Listening..."
-              : isReady
-                ? "Push & hold to speak"
-                : "Waiting for teacher..."}
+              : drillComplete
+                ? "Free practice with Luna"
+                : hasVocabDrill && drillPhase === "speak"
+                  ? `Say: ${currentVocab?.word ?? ""}`
+                  : hasVocabDrill && drillPhase === "loading"
+                    ? "Listen to native audio…"
+                    : isReady
+                      ? "Push & hold to speak"
+                      : "Waiting for teacher..."}
           </Text>
         </View>
       </View>
@@ -794,7 +852,7 @@ const styles = StyleSheet.create({
   mascot: {
     position: "absolute",
     top: 0,
-    bottom: 80,
+    bottom: 220,
     left: -20,
     right: -20,
   },
@@ -837,54 +895,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 10,
-  },
-  // Live captions
-  captionsContainer: {
-    position: "absolute",
-    bottom: 14,
-    left: 14,
-    right: 14,
-    gap: 6,
-  },
-  captionBubble: {
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  captionBubbleTeacher: {
-    backgroundColor: colors.primary.purple,
-  },
-  captionBubbleUser: {
-    backgroundColor: "#fff",
-  },
-  captionBubblePartial: {
-    opacity: 0.85,
-  },
-  captionSpeaker: {
-    fontFamily: "Poppins-SemiBold",
-    fontSize: 11,
-    marginBottom: 2,
-  },
-  captionSpeakerTeacher: {
-    color: "rgba(255,255,255,0.7)",
-  },
-  captionSpeakerUser: {
-    color: colors.neutral.textSecondary,
-  },
-  captionText: {
-    fontFamily: "Poppins-Regular",
-    fontSize: 14,
-  },
-  captionTextTeacher: {
-    color: "#fff",
-  },
-  captionTextUser: {
-    color: colors.neutral.textPrimary,
   },
   // Push-to-talk
   pushToTalkSection: {

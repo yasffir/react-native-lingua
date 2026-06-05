@@ -57,7 +57,7 @@ function buildBank(
   return shuffle(chips);
 }
 
-function configToStep(
+export function translationStepFromConfig(
   lessonId: string,
   config: TranslationSentenceConfig,
   index: number
@@ -81,7 +81,9 @@ function configToStep(
   };
 }
 
-function phraseToConfig(phrase: Phrase): TranslationSentenceConfig | null {
+export function phraseToTranslationConfig(
+  phrase: Phrase
+): TranslationSentenceConfig | null {
   const answer = tokenizeTranslation(phrase.translation);
   if (answer.length < 2 || answer.length > 8) return null;
 
@@ -101,7 +103,7 @@ function phraseToConfig(phrase: Phrase): TranslationSentenceConfig | null {
 export function buildTranslationSteps(lesson: Lesson): TranslationExerciseStep[] {
   const scripted = LESSON_TRANSLATION_SENTENCES[lesson.id] ?? [];
   const fromPhrases = lesson.phrases
-    .map(phraseToConfig)
+    .map(phraseToTranslationConfig)
     .filter((c): c is TranslationSentenceConfig => c !== null);
 
   const merged: TranslationSentenceConfig[] = [...scripted];
@@ -113,7 +115,7 @@ export function buildTranslationSteps(lesson: Lesson): TranslationExerciseStep[]
   const picked = shuffle(merged).slice(0, 3);
 
   return picked.map((config, index) =>
-    configToStep(lesson.id, config, index)
+    translationStepFromConfig(lesson.id, config, index)
   );
 }
 

@@ -1,5 +1,22 @@
 const AGENT_URL = process.env.VISION_AGENT_URL ?? "http://127.0.0.1:8000";
 
+function visionAgentReachabilityError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  const code =
+    err instanceof Error &&
+    err.cause &&
+    typeof err.cause === "object" &&
+    "code" in err.cause
+      ? String((err.cause as { code?: string }).code)
+      : "";
+
+  if (code === "ECONNREFUSED" || message === "fetch failed") {
+    return "Vision agent is not running. In a separate terminal run: bun run vision-agent:serve";
+  }
+
+  return message || code || "Unknown error";
+}
+
 export async function POST(request: Request): Promise<Response> {
   let body: { callId?: string; callType?: string };
   try {
@@ -40,12 +57,12 @@ export async function POST(request: Request): Promise<Response> {
     console.log(`[agent-session] Session started: ${data.session_id}`);
     return Response.json(data);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const detail = visionAgentReachabilityError(err);
     console.error(
-      `[agent-session] Failed to reach vision agent at ${AGENT_URL}: ${message}`,
+      `[agent-session] Failed to reach vision agent at ${AGENT_URL}: ${detail}`,
     );
     return Response.json(
-      { error: `Cannot reach vision agent: ${message}` },
+      { error: `Cannot reach vision agent: ${detail}` },
       { status: 503 },
     );
   }

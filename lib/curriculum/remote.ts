@@ -48,6 +48,15 @@ export async function fetchAllUnitsForLanguage(
   return (data ?? []).map(mapUnitRow);
 }
 
+export async function fetchAllLessonsForLanguage(
+  supabase: SupabaseClient,
+  languageCode: LanguageCode
+): Promise<Lesson[]> {
+  const units = await fetchAllUnitsForLanguage(supabase, languageCode);
+  const lessonIds = units.flatMap((unit) => unit.lessonIds);
+  return fetchLessonsByIds(supabase, lessonIds);
+}
+
 export async function fetchLessonsByIds(
   supabase: SupabaseClient,
   lessonIds: string[]

@@ -248,6 +248,33 @@ export default function ProfileScreen() {
           })}
         </View>
 
+        {/* Dictionary */}
+        <Text style={styles.sectionTitle}>Dictionary</Text>
+        <TouchableOpacity
+          style={styles.dictionaryCard}
+          activeOpacity={0.85}
+          onPress={() => {
+            posthog.capture("dictionary_opened", { source: "profile" });
+            router.push("/dictionary");
+          }}
+          testID="profile-dictionary-link"
+        >
+          <View style={styles.dictionaryIcon}>
+            <Ionicons name="book-outline" size={22} color={DUO_BLUE} />
+          </View>
+          <View style={styles.dictionaryText}>
+            <Text style={styles.dictionaryTitle}>LOD Dictionary</Text>
+            <Text style={styles.dictionarySubtitle}>
+              Search in English or Luxembourgish (GWS A1 list)
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={colors.neutral.textSecondary}
+          />
+        </TouchableOpacity>
+
         {/* Statistics */}
         <Text style={styles.sectionTitle}>Statistics</Text>
         <View style={styles.statsGrid}>
@@ -578,6 +605,39 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: colors.neutral.textPrimary,
     marginBottom: 12,
+  },
+  dictionaryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.neutral.border,
+    padding: 14,
+    marginBottom: 24,
+    gap: 12,
+  },
+  dictionaryIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#E8F7FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dictionaryText: {
+    flex: 1,
+  },
+  dictionaryTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: 15,
+    color: colors.neutral.textPrimary,
+  },
+  dictionarySubtitle: {
+    fontFamily: fontFamily.regular,
+    fontSize: 12,
+    color: colors.neutral.textSecondary,
+    marginTop: 2,
   },
   statsGrid: {
     flexDirection: "row",

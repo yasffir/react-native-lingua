@@ -9,7 +9,11 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "seed:supabase": "tsx scripts/seed-supabase.ts"
+    "seed:supabase": "tsx scripts/seed-supabase.ts",
+    "generate:lod-lessons": "tsx scripts/generate-lod-lessons.ts",
+    "generate:lod-exercises": "tsx scripts/generate-lod-exercise-data.ts",
+    "generate:lod": "tsx scripts/generate-lod-lessons.ts",
+    "vision-agent:serve": "cd vision-agent && uv run main.py serve"
   },
   "dependencies": {
     "@clerk/expo": "^3.2.10",

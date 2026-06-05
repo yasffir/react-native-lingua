@@ -1,16 +1,9 @@
-/** Extra Luxembourgish → English word-bank sentences per lesson. */
-export interface TranslationSentenceConfig {
-  source: string;
-  answer: string[];
-  distractors?: string[];
-  explain?: {
-    highlightWord: string;
-    meaning: string;
-    examples: string[];
-  };
-}
+import { LOD_TRANSLATION_SENTENCES } from "@/data/lodTranslationSentences";
+import type { TranslationSentenceConfig } from "@/types/exerciseContent";
 
-export const LESSON_TRANSLATION_SENTENCES: Record<
+export type { TranslationSentenceConfig } from "@/types/exerciseContent";
+
+const HAND_CRAFTED_TRANSLATION_SENTENCES: Record<
   string,
   TranslationSentenceConfig[]
 > = {
@@ -58,6 +51,14 @@ export const LESSON_TRANSLATION_SENTENCES: Record<
       },
     },
   ],
+};
+
+export const LESSON_TRANSLATION_SENTENCES: Record<
+  string,
+  TranslationSentenceConfig[]
+> = {
+  ...LOD_TRANSLATION_SENTENCES,
+  ...HAND_CRAFTED_TRANSLATION_SENTENCES,
 };
 
 export const COMMON_DISTRACTOR_WORDS = [

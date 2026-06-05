@@ -58,3 +58,11 @@ export interface LessonCompletionRow {
   lesson_id: string;
   completed_at: string;
 }
+
+export interface ExerciseStepTemplateRow {
+  id: string;
+  lesson_id: string;
+  step_type: string;
+  sort_order: number;
+  config: Record<string, unknown>;
+}

@@ -8,4 +8,5 @@ export const TABLES = {
   languages: "languages",
   units: "units",
   lessons: "lessons",
+  exerciseStepTemplates: "exercise_step_templates",
 } as const;

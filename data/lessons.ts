@@ -1,6 +1,37 @@
 import { Lesson } from "@/types/learning";
 import { LOD_LESSONS } from "./lodLessons";
 
+/** Shared Luna prompt copy for AI Teacher (prompt 16). */
+export function buildAiTeacherSystemPrompt(options: {
+  lessonFocus: string;
+  allowedTerms: string;
+  topics: string[];
+}): string {
+  const topicLabel = options.topics.join(", ");
+  return (
+    `You're Luna, a warm and energetic Luxembourgish coach in a real voice conversation about ${options.lessonFocus}. ` +
+    `Speak mostly in English — use contractions, sound natural and encouraging, not robotic. ` +
+    `This is interactive: listen to what the student actually says, adapt your next line, and invite them to repeat or try again. ` +
+    `When you introduce a Luxembourgish word, say it slowly once, give the English meaning, and one quick pronunciation tip — then stop and wait. ` +
+    `Keep every reply to one or two short sentences. Your turn ends at the question mark — never role-play the student's answer or praise before they've spoken. ` +
+    `Stay strictly within this lesson only (${topicLabel}). Never teach other languages or off-topic vocabulary. ` +
+    `Allowed words and phrases: ${options.allowedTerms}.`
+  );
+}
+
+export function buildAiTeacherIntroMessage(options: { hook: string }): string {
+  return `Hey! I'm Luna, your Luxembourgish coach — ${options.hook} Ready to give it a try?`;
+}
+
+function lessonAllowedTerms(
+  vocabulary: { word: string }[],
+  phrases: { text: string }[]
+): string {
+  return [...vocabulary.map((v) => v.word), ...phrases.map((p) => p.text)].join(
+    ", "
+  );
+}
+
 const HAND_CRAFTED: Lesson[] = [
   // ─── Luxembourgish ─────────────────────────────────────────────────────────
 
@@ -102,10 +133,32 @@ const HAND_CRAFTED: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      systemPrompt:
-        "You're Luna, an upbeat Luxembourgish teacher in a real back-and-forth voice lesson about Luxembourgish greetings. This is an INTERACTIVE conversation — not a lecture. Introduce ONE word at a time: say it, give the English meaning, add a quick pronunciation tip, then END YOUR TURN and wait silently for the student. Your turn ENDS at the question mark — stop there and output nothing else. Never write a reaction in the same turn as a teaching step. Keep every reply to one or two sentences. Stay strictly within: Moien, Äddi, Gudde Moien, Gudden Owend, Gutt Nuecht, Wéi geet et dir?, Et geet mir gutt merci, and Et freet mech.",
-      introMessage:
-        "Moien! Ech sinn Luna, Är Lëtzebuergesch-Léierin — loosst eis mat e puer Moien ufänken!",
+      systemPrompt: buildAiTeacherSystemPrompt({
+        lessonFocus: "Luxembourgish greetings and polite hellos",
+        allowedTerms: lessonAllowedTerms(
+          [
+            { word: "Moien" },
+            { word: "Äddi" },
+            { word: "Gudde Moien" },
+            { word: "Gudden Owend" },
+            { word: "Gutt Nuecht" },
+          ],
+          [
+            { text: "Wéi geet et dir?" },
+            { text: "Et geet mir gutt, merci." },
+            { text: "Et freet mech." },
+          ]
+        ),
+        topics: [
+          "greetings",
+          "farewells",
+          "time-of-day phrases",
+          "asking how someone is",
+        ],
+      }),
+      introMessage: buildAiTeacherIntroMessage({
+        hook: "today we're learning greetings like Moien, Äddi, and how to ask 'how are you?'",
+      }),
       topics: [
         "greetings",
         "farewells",
@@ -210,10 +263,33 @@ const HAND_CRAFTED: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      systemPrompt:
-        "You're Luna, an encouraging Luxembourgish teacher in a real back-and-forth voice lesson about introducing yourself in Luxembourgish. This is INTERACTIVE — not a lecture. Introduce ONE phrase at a time: say it, give the meaning, add a quick pronunciation tip, then END YOUR TURN and wait for the student. Your turn ENDS at the question mark — stop there and output nothing else. Never write a reaction in the same turn as a teaching step. Keep every reply to one or two sentences. Stay strictly within: Ech heeschen, Wéi heescht Dir?, Ech sinn vu, Vu wou sidd Dir?, and Freet mech.",
-      introMessage:
-        "Moien nach eng Kéier! Haut léiere mir eis virzestellen — et ass méi einfach wéi Dir denkt!",
+      systemPrompt: buildAiTeacherSystemPrompt({
+        lessonFocus: "introducing yourself in Luxembourgish",
+        allowedTerms: lessonAllowedTerms(
+          [
+            { word: "Ech heeschen" },
+            { word: "Ech sinn" },
+            { word: "Numm" },
+            { word: "Vu" },
+            { word: "Freet mech" },
+          ],
+          [
+            { text: "Wéi heescht Dir?" },
+            { text: "Ech heeschen Marie." },
+            { text: "Vu wou sidd Dir?" },
+            { text: "Ech sinn vu Lëtzebuerg." },
+          ]
+        ),
+        topics: [
+          "introductions",
+          "saying your name",
+          "asking names",
+          "where you are from",
+        ],
+      }),
+      introMessage: buildAiTeacherIntroMessage({
+        hook: "let's practice introducing yourself — your name and where you're from.",
+      }),
       topics: [
         "introductions",
         "saying your name",
@@ -332,10 +408,31 @@ const HAND_CRAFTED: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      systemPrompt:
-        "You're Luna, an energetic Luxembourgish teacher in a real back-and-forth voice lesson about numbers 1 through 10 in Luxembourgish. This is INTERACTIVE — not a lecture. Teach ONE number at a time: say it, give the pronunciation tip, then END YOUR TURN and wait for the student to repeat it. Your turn ENDS at the question mark — stop there and output nothing else. Never write a reaction in the same turn as a teaching step. Keep every reply to one or two sentences. Stay strictly within eent through zéng and the phrases Wéi vill sinn et? and Et sinn fënnef.",
-      introMessage:
-        "Moien! Haut zielen mir op Lëtzebuergesch — eent, zwou, dräi — sidd Dir prett?",
+      systemPrompt: buildAiTeacherSystemPrompt({
+        lessonFocus: "Luxembourgish numbers 1 through 10",
+        allowedTerms: lessonAllowedTerms(
+          [
+            { word: "Eent" },
+            { word: "Zwou" },
+            { word: "Dräi" },
+            { word: "Véier" },
+            { word: "Fënnef" },
+            { word: "Sechs" },
+            { word: "Siwen" },
+            { word: "Aacht" },
+            { word: "Néng" },
+            { word: "Zéng" },
+          ],
+          [
+            { text: "Wéi vill sinn et?" },
+            { text: "Et sinn fënnef." },
+          ]
+        ),
+        topics: ["numbers 1-10", "counting", "how many"],
+      }),
+      introMessage: buildAiTeacherIntroMessage({
+        hook: "today we're counting from one to ten in Luxembourgish — eent, zwou, dräi!",
+      }),
       topics: ["numbers 1-10", "counting", "how many"],
     },
   },
@@ -427,10 +524,27 @@ const HAND_CRAFTED: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      systemPrompt:
-        "You're Luna, a warm Luxembourgish teacher in a real back-and-forth voice lesson about polite words in Luxembourgish. This is INTERACTIVE — not a lecture. Introduce ONE word at a time with meaning and pronunciation, then END YOUR TURN at the question mark. Stay strictly within: Merci, Merci villmools, Wann ech glift, Pardon, Jo, and Nee.",
-      introMessage:
-        "Moien! Haut léiere mir déi wichtegst héiflech Wierder — Merci ass just den Ufank!",
+      systemPrompt: buildAiTeacherSystemPrompt({
+        lessonFocus: "polite words in Luxembourgish",
+        allowedTerms: lessonAllowedTerms(
+          [
+            { word: "Merci" },
+            { word: "Merci villmools" },
+            { word: "Wann ech glift" },
+            { word: "Pardon" },
+            { word: "Jo" },
+            { word: "Nee" },
+          ],
+          [
+            { text: "Merci, et war schéin." },
+            { text: "Kënnt Dir mir hëllefen, wann ech glift?" },
+          ]
+        ),
+        topics: ["thank you", "please", "sorry", "yes and no"],
+      }),
+      introMessage: buildAiTeacherIntroMessage({
+        hook: "let's learn the essentials — Merci, please, sorry, and yes or no.",
+      }),
       topics: ["thank you", "please", "sorry", "yes and no"],
     },
   },
@@ -543,10 +657,29 @@ const HAND_CRAFTED: Lesson[] = [
       },
     ],
     aiTeacherPrompt: {
-      systemPrompt:
-        "You're Luna, a friendly Luxembourgish teacher in a real back-and-forth voice lesson about ordering at a café in Luxembourgish. This is INTERACTIVE — not a lecture. Teach ONE word or phrase at a time, then END YOUR TURN at the question mark. Stay strictly within: Kaffi, Téi, Waasser, Brout, Kuch, Ech hätt gär e Kaffi wann ech glift, Wat kascht dat?, and Déi Rechnung wann ech glift.",
-      introMessage:
-        "Moien! Mir sinn am Café — loosst eis e Kaffi bestellen op Lëtzebuergesch!",
+      systemPrompt: buildAiTeacherSystemPrompt({
+        lessonFocus: "ordering at a café in Luxembourgish",
+        allowedTerms: lessonAllowedTerms(
+          [
+            { word: "Kaffi" },
+            { word: "Téi" },
+            { word: "Waasser" },
+            { word: "Brout" },
+            { word: "Kuch" },
+            { word: "Mëllech" },
+            { word: "Zuocker" },
+          ],
+          [
+            { text: "Ech hätt gär e Kaffi, wann ech glift." },
+            { text: "Wat kascht dat?" },
+            { text: "Déi Rechnung, wann ech glift." },
+          ]
+        ),
+        topics: ["café", "ordering drinks", "asking the price", "the bill"],
+      }),
+      introMessage: buildAiTeacherIntroMessage({
+        hook: "imagine we're at a café — let's order drinks and snacks in Luxembourgish.",
+      }),
       topics: ["café", "ordering drinks", "asking the price", "the bill"],
     },
   },

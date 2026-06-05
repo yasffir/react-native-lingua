@@ -1,17 +1,9 @@
-/** “Complete the chat” prompts and reply options per lesson. */
-export interface ChatDialogueConfig {
-  prompt: string;
-  promptTranslation: string;
-  options: { id: string; text: string; translation: string }[];
-  correctOptionId: string;
-  explain?: {
-    highlightWord: string;
-    meaning: string;
-    examples: string[];
-  };
-}
+import { LOD_CHAT_DIALOGUES } from "@/data/lodChatDialogues";
+import type { ChatDialogueConfig } from "@/types/exerciseContent";
 
-export const LESSON_CHAT_DIALOGUES: Record<string, ChatDialogueConfig[]> = {
+export type { ChatDialogueConfig } from "@/types/exerciseContent";
+
+const HAND_CRAFTED_CHAT_DIALOGUES: Record<string, ChatDialogueConfig[]> = {
   "lu-lesson-1": [
     {
       prompt: "Moien! Wéi geet et dir?",
@@ -120,4 +112,9 @@ export const LESSON_CHAT_DIALOGUES: Record<string, ChatDialogueConfig[]> = {
       },
     },
   ],
+};
+
+export const LESSON_CHAT_DIALOGUES: Record<string, ChatDialogueConfig[]> = {
+  ...LOD_CHAT_DIALOGUES,
+  ...HAND_CRAFTED_CHAT_DIALOGUES,
 };

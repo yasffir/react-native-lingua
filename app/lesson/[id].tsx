@@ -23,9 +23,11 @@ import { TranslateSentenceStepView } from "@/components/lesson-exercises/Transla
 import { colors, fontFamily } from "@/constants/theme";
 import { useLearningProgress } from "@/hooks/useLearningProgress";
 import { useLesson } from "@/hooks/useLesson";
+import { useLessonExerciseTemplates } from "@/hooks/useLessonExerciseTemplates";
 import { buildLessonSteps } from "@/lib/lessonExercises/buildLessonSteps";
 import { isTranslationCorrect } from "@/lib/lessonExercises/buildTranslationSteps";
 import { getIncorrectFeedback } from "@/lib/lessonExercises/incorrectFeedback";
+import { getStepLodId } from "@/lib/lod/getStepLodId";
 import { translationLanguageName } from "@/lib/translation";
 import { posthog } from "@/lib/posthog";
 import { useLanguageStore } from "@/store/languageStore";
@@ -37,13 +39,15 @@ export default function LessonExerciseScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { lesson, lessonIndex, loading } = useLesson(id);
+  const { templates, loading: templatesLoading } =
+    useLessonExerciseTemplates(id);
   const { recordLessonComplete } = useLearningProgress();
   const { translationLanguage } = useLanguageStore();
 
-  const steps = useMemo(
-    () => (lesson ? buildLessonSteps(lesson, translationLanguage) : []),
-    [lesson, translationLanguage]
-  );
+  const steps = useMemo(() => {
+    if (!lesson || templatesLoading) return [];
+    return buildLessonSteps(lesson, translationLanguage, templates);
+  }, [lesson, translationLanguage, templates, templatesLoading]);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("pick");
@@ -197,7 +201,7 @@ export default function LessonExerciseScreen() {
     return false;
   }, [step, phase, selectedId, answerIds, matchingComplete]);
 
-  if (loading) {
+  if (loading || templatesLoading) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centered}>
@@ -238,6 +242,8 @@ export default function LessonExerciseScreen() {
           examples: [`${step.promptWord}!`],
         }
       : step.explain;
+
+  const stepLodId = getStepLodId(step, lesson.vocabulary);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -332,6 +338,7 @@ export default function LessonExerciseScreen() {
       <ExplainAnswerModal
         visible={explainVisible}
         explain={explainPayload}
+        lodId={stepLodId}
         onClose={() => setExplainVisible(false)}
       />
     </SafeAreaView>

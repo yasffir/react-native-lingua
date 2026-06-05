@@ -107,6 +107,19 @@ create table if not exists lesson_completions (
 create index if not exists lesson_completions_user_idx
   on lesson_completions (clerk_user_id);
 
+-- ─── Exercise step templates (mixed lesson content) ────────────────────────
+
+create table if not exists exercise_step_templates (
+  id text primary key,
+  lesson_id text not null references lessons (id) on delete cascade,
+  step_type text not null,
+  sort_order int not null default 0,
+  config jsonb not null default '{}'
+);
+
+create index if not exists exercise_step_templates_lesson_idx
+  on exercise_step_templates (lesson_id, sort_order);
+
 -- ─── Row Level Security ─────────────────────────────────────────────────────
 
 alter table languages enable row level security;
@@ -117,6 +130,7 @@ alter table user_learning_stats enable row level security;
 alter table xp_daily enable row level security;
 alter table user_achievements enable row level security;
 alter table lesson_completions enable row level security;
+alter table exercise_step_templates enable row level security;
 
 -- Public read for curriculum
 drop policy if exists "languages_public_read" on languages;
@@ -127,6 +141,10 @@ create policy "units_public_read" on units for select using (true);
 
 drop policy if exists "lessons_public_read" on lessons;
 create policy "lessons_public_read" on lessons for select using (true);
+
+drop policy if exists "exercise_templates_public_read" on exercise_step_templates;
+create policy "exercise_templates_public_read" on exercise_step_templates
+  for select using (true);
 
 -- Users: read/update own row (Clerk JWT sub = clerk_user_id)
 drop policy if exists "users_select_own" on users;

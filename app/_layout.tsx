@@ -1,5 +1,6 @@
 import "../global.css";
 
+import { AudioBootstrap } from "@/components/AudioBootstrap";
 import { ProfileSync } from "@/components/ProfileSync";
 import { posthog } from "@/lib/posthog";
 import { useLanguageStore } from "@/store/languageStore";
@@ -78,6 +79,7 @@ export default function RootLayout() {
       }}
     >
       <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+        <AudioBootstrap />
         <ClerkIdentifier />
         <ProfileSync />
         <Stack screenOptions={{ headerShown: false }}>
@@ -85,6 +87,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="language-select" />
+          <Stack.Screen name="dictionary" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="lesson/[id]" />
         </Stack>

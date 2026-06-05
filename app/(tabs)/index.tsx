@@ -1,6 +1,6 @@
 import { useAuth, useUser } from "@clerk/expo";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Image,
@@ -12,12 +12,17 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { WordOfTheDayCard } from "@/components/WordOfTheDayCard";
+import { WordOfTheDayModal } from "@/components/WordOfTheDayModal";
 import { images } from "@/constants/images";
 import { colors } from "@/constants/theme";
 import { useCurriculum } from "@/hooks/useCurriculum";
+import { useWordOfTheDay } from "@/hooks/useWordOfTheDay";
 import { useLanguages } from "@/hooks/useLanguages";
 import { useLearningProgress } from "@/hooks/useLearningProgress";
 import { getNextLesson } from "@/lib/curriculum/getNextLesson";
+import { getAiTeacherLesson } from "@/lib/curriculum/getAiTeacherLesson";
+import { openAiTeacherSession } from "@/lib/navigation/openAiTeacher";
 import { posthog } from "@/lib/posthog";
 import {
   useDailyPlanStore,
@@ -25,6 +30,8 @@ import {
 } from "@/store/dailyPlanStore";
 import { useLanguageStore } from "@/store/languageStore";
 import type { Lesson } from "@/types/learning";
+
+const DUO_BLUE = "#1CB0F6";
 
 function getGreeting(): string {
   return "Moien";
@@ -86,6 +93,12 @@ export default function HomeScreen() {
   const planCompleted = useDailyPlanStore((s) => s.completed);
   const planDateKey = useDailyPlanStore((s) => s.dateKey);
   const markPlanItemComplete = useDailyPlanStore((s) => s.markComplete);
+  const [wordOfDayVisible, setWordOfDayVisible] = useState(false);
+  const {
+    word: wordOfDay,
+    entry: wordOfDayEntry,
+    loading: wordOfDayLoading,
+  } = useWordOfTheDay();
 
   useFocusEffect(
     useCallback(() => {
@@ -94,18 +107,26 @@ export default function HomeScreen() {
     }, [refreshProgress, syncToday])
   );
   const { languages } = useLanguages();
-  const { unit, lessons } = useCurriculum(selectedLanguage);
+  const { unit, allLessons } = useCurriculum(selectedLanguage);
 
   const nextLesson = useMemo(
-    () => getNextLesson(lessons, completedLessonIds),
-    [lessons, completedLessonIds]
+    () => getNextLesson(allLessons, completedLessonIds),
+    [allLessons, completedLessonIds]
+  );
+
+  const aiTeacherLesson = useMemo(
+    () => getAiTeacherLesson(allLessons, completedLessonIds),
+    [allLessons, completedLessonIds]
   );
 
   const planItems = useMemo((): TodayPlanItem[] => {
     const vocabCount = nextLesson?.vocabulary.length ?? 0;
     const lessonSubtitle = nextLesson?.title ?? "Start a lesson";
-    const wordsSubtitle =
-      vocabCount > 0 ? `${vocabCount} words` : "Review vocabulary";
+    const wordsSubtitle = wordOfDay?.lemma
+      ? `LOD · ${wordOfDay.lemma}`
+      : vocabCount > 0
+        ? `${vocabCount} words`
+        : "Review vocabulary";
 
     const isDone = (id: DailyPlanItemId) => Boolean(planCompleted[id]);
 
@@ -119,8 +140,8 @@ export default function HomeScreen() {
       {
         id: "ai-conversation",
         ...PLAN_ITEM_META["ai-conversation"],
-        subtitle: nextLesson
-          ? `Practice · ${nextLesson.title}`
+        subtitle: aiTeacherLesson
+          ? `Practice · ${aiTeacherLesson.title}`
           : "Talk with Luna",
         completed: isDone("ai-conversation"),
       },
@@ -131,7 +152,7 @@ export default function HomeScreen() {
         completed: isDone("new-words"),
       },
     ];
-  }, [nextLesson, planCompleted, planDateKey, xpToday]);
+  }, [aiTeacherLesson, nextLesson, planCompleted, planDateKey, xpToday, wordOfDay?.lemma]);
 
   const language = languages.find((l) => l.code === selectedLanguage);
   const firstName = user?.firstName ?? "Learner";
@@ -184,11 +205,29 @@ export default function HomeScreen() {
       return;
     }
     if (itemId === "ai-conversation") {
-      router.push("/(tabs)/ai-teacher");
+      if (!selectedLanguage) {
+        router.push("/language-select");
+        return;
+      }
+      posthog.capture("ai_teacher_launch_tapped", {
+        language_code: selectedLanguage,
+        lesson_id: aiTeacherLesson?.id ?? null,
+        source: "daily_plan",
+      });
+      if (openAiTeacherSession(router, aiTeacherLesson)) return;
+      router.push("/(tabs)/learn");
       return;
     }
     markPlanItemComplete("new-words");
-    router.push("/(tabs)/learn");
+    setWordOfDayVisible(true);
+  }
+
+  function openWordOfTheDay() {
+    posthog.capture("word_of_the_day_opened", {
+      language_code: selectedLanguage,
+      lod_id: wordOfDay?.lodId ?? null,
+    });
+    setWordOfDayVisible(true);
   }
 
   function handleViewAllPlan() {
@@ -273,6 +312,40 @@ export default function HomeScreen() {
             resizeMode="contain"
           />
         </View>
+
+        <WordOfTheDayCard
+          word={wordOfDay}
+          entry={wordOfDayEntry}
+          loading={wordOfDayLoading}
+          onPress={openWordOfTheDay}
+        />
+
+        <TouchableOpacity
+          activeOpacity={0.85}
+          className="flex-row items-center bg-white rounded-[20px] border border-border px-4 py-4 mb-4"
+          onPress={() => {
+            posthog.capture("dictionary_opened", { source: "home" });
+            router.push("/dictionary");
+          }}
+          testID="home-dictionary-link"
+        >
+          <View className="w-11 h-11 rounded-2xl bg-[#E8F7FF] items-center justify-center mr-3">
+            <Ionicons name="book-outline" size={22} color={DUO_BLUE} />
+          </View>
+          <View className="flex-1">
+            <Text className="font-poppins-semibold text-sm text-text-primary">
+              LOD Dictionary
+            </Text>
+            <Text className="font-poppins text-xs text-text-secondary mt-0.5">
+              Search in English or Luxembourgish · GWS A1 words
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={colors.neutral.textSecondary}
+          />
+        </TouchableOpacity>
 
         {/* ── Continue Learning Card ── */}
         <View className="flex-row bg-lingua-purple rounded-[20px] h-[160px] mb-6 overflow-hidden">
@@ -362,6 +435,14 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <WordOfTheDayModal
+        visible={wordOfDayVisible}
+        word={wordOfDay}
+        entry={wordOfDayEntry}
+        loading={wordOfDayLoading}
+        onClose={() => setWordOfDayVisible(false)}
+      />
     </SafeAreaView>
   );
 }

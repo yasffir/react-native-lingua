@@ -22,6 +22,13 @@ export function getLocalLessonsForUnit(unit: Unit): Lesson[] {
     .filter((l): l is Lesson => Boolean(l));
 }
 
+/** All lessons for a language in unit order (for progress / AI Teacher routing). */
+export function getAllLocalLessonsForLanguage(
+  languageCode: LanguageCode
+): Lesson[] {
+  return getLocalUnitsForLanguage(languageCode).flatMap(getLocalLessonsForUnit);
+}
+
 export function getLocalLesson(lessonId: string): Lesson | null {
   return LESSONS.find((l) => l.id === lessonId) ?? null;
 }
