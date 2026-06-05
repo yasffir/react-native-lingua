@@ -16,6 +16,7 @@ import {
 } from "@/lib/progress/schemaSupport";
 import { calculateNextStreak } from "@/lib/progress/streak";
 import { TABLES } from "@/lib/supabase/tables";
+import { useDailyPlanStore } from "@/store/dailyPlanStore";
 
 export interface WeekXpPoint {
   day: string;
@@ -477,6 +478,7 @@ export function useLearningProgress() {
         setCompletedLessonIds((prev) =>
           prev.includes(lessonId) ? prev : [...prev, lessonId]
         );
+        useDailyPlanStore.getState().markComplete("lesson");
         await applyXp(xpReward);
         return true;
       }
@@ -495,6 +497,7 @@ export function useLearningProgress() {
 
       const nextCompleted = [...completedLessonIds, lessonId];
       setCompletedLessonIds(nextCompleted);
+      useDailyPlanStore.getState().markComplete("lesson");
       await applyXp(xpReward);
 
       const { data: statsRow } = await client

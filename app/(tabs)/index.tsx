@@ -1,6 +1,6 @@
 import { useAuth, useUser } from "@clerk/expo";
-import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Image,
@@ -17,63 +17,186 @@ import { colors } from "@/constants/theme";
 import { useCurriculum } from "@/hooks/useCurriculum";
 import { useLanguages } from "@/hooks/useLanguages";
 import { useLearningProgress } from "@/hooks/useLearningProgress";
+import { getNextLesson } from "@/lib/curriculum/getNextLesson";
 import { posthog } from "@/lib/posthog";
+import {
+  useDailyPlanStore,
+  type DailyPlanItemId,
+} from "@/store/dailyPlanStore";
 import { useLanguageStore } from "@/store/languageStore";
+import type { Lesson } from "@/types/learning";
 
 function getGreeting(): string {
   return "Moien";
 }
 
-const PLAN_ITEMS = [
+const PLAN_ITEM_META: Record<
+  DailyPlanItemId,
   {
-    id: "lesson",
-    icon: "book" as const,
+    icon: "book" | "headset" | "chatbubble-ellipses";
+    iconBg: string;
+    iconColor: string;
+    title: string;
+  }
+> = {
+  lesson: {
+    icon: "book",
     iconBg: "#EDE9FE",
     iconColor: colors.primary.purple,
     title: "Lesson",
-    subtitle: "Moien & Äddi",
-    completed: true,
   },
-  {
-    id: "ai-conversation",
-    icon: "headset" as const,
+  "ai-conversation": {
+    icon: "headset",
     iconBg: "#EDE9FE",
     iconColor: colors.primary.purple,
     title: "AI Conversation",
-    subtitle: "Talk about your day",
-    completed: false,
   },
-  {
-    id: "new-words",
-    icon: "chatbubble-ellipses" as const,
+  "new-words": {
+    icon: "chatbubble-ellipses",
     iconBg: "#FEE2E2",
     iconColor: "#EF4444",
     title: "New words",
-    subtitle: "10 words",
-    completed: false,
   },
-];
+};
+
+interface TodayPlanItem {
+  id: DailyPlanItemId;
+  subtitle: string;
+  completed: boolean;
+  icon: "book" | "headset" | "chatbubble-ellipses";
+  iconBg: string;
+  iconColor: string;
+  title: string;
+}
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { user } = useUser();
   const { signOut } = useAuth();
   const { selectedLanguage } = useLanguageStore();
-  const { xpToday, dailyGoal, streak, refresh: refreshProgress } =
-    useLearningProgress();
+  const {
+    completedLessonIds,
+    xpToday,
+    dailyGoal,
+    streak,
+    refresh: refreshProgress,
+  } = useLearningProgress();
+
+  const syncToday = useDailyPlanStore((s) => s.syncToday);
+  const planCompleted = useDailyPlanStore((s) => s.completed);
+  const planDateKey = useDailyPlanStore((s) => s.dateKey);
+  const markPlanItemComplete = useDailyPlanStore((s) => s.markComplete);
 
   useFocusEffect(
     useCallback(() => {
+      syncToday();
       refreshProgress();
-    }, [refreshProgress])
+    }, [refreshProgress, syncToday])
   );
   const { languages } = useLanguages();
-  const { unit } = useCurriculum(selectedLanguage);
+  const { unit, lessons } = useCurriculum(selectedLanguage);
+
+  const nextLesson = useMemo(
+    () => getNextLesson(lessons, completedLessonIds),
+    [lessons, completedLessonIds]
+  );
+
+  const planItems = useMemo((): TodayPlanItem[] => {
+    const vocabCount = nextLesson?.vocabulary.length ?? 0;
+    const lessonSubtitle = nextLesson?.title ?? "Start a lesson";
+    const wordsSubtitle =
+      vocabCount > 0 ? `${vocabCount} words` : "Review vocabulary";
+
+    const isDone = (id: DailyPlanItemId) => Boolean(planCompleted[id]);
+
+    return [
+      {
+        id: "lesson",
+        ...PLAN_ITEM_META.lesson,
+        subtitle: lessonSubtitle,
+        completed: isDone("lesson") || xpToday > 0,
+      },
+      {
+        id: "ai-conversation",
+        ...PLAN_ITEM_META["ai-conversation"],
+        subtitle: nextLesson
+          ? `Practice · ${nextLesson.title}`
+          : "Talk with Luna",
+        completed: isDone("ai-conversation"),
+      },
+      {
+        id: "new-words",
+        ...PLAN_ITEM_META["new-words"],
+        subtitle: wordsSubtitle,
+        completed: isDone("new-words"),
+      },
+    ];
+  }, [nextLesson, planCompleted, planDateKey, xpToday]);
 
   const language = languages.find((l) => l.code === selectedLanguage);
   const firstName = user?.firstName ?? "Learner";
   const greeting = getGreeting();
   const xpProgress =
     dailyGoal > 0 ? Math.min((xpToday / dailyGoal) * 100, 100) : 0;
+
+  function handleContinueLearning() {
+    posthog.capture("continue_learning_tapped", {
+      language_code: selectedLanguage,
+      unit_order: unit?.order ?? 1,
+      xp_today: xpToday,
+      streak,
+    });
+
+    if (!selectedLanguage) {
+      router.push("/language-select");
+      return;
+    }
+
+    if (nextLesson) {
+      router.push(`/lesson/${nextLesson.id}`);
+      return;
+    }
+
+    router.push("/(tabs)/learn");
+  }
+
+  function openNextLesson(lesson: Lesson | null) {
+    if (!selectedLanguage) {
+      router.push("/language-select");
+      return;
+    }
+    if (lesson) {
+      router.push(`/lesson/${lesson.id}`);
+      return;
+    }
+    router.push("/(tabs)/learn");
+  }
+
+  function handlePlanItemPress(itemId: DailyPlanItemId) {
+    posthog.capture("daily_plan_item_tapped", {
+      item_id: itemId,
+      language_code: selectedLanguage,
+      lesson_id: nextLesson?.id ?? null,
+    });
+
+    if (itemId === "lesson") {
+      openNextLesson(nextLesson);
+      return;
+    }
+    if (itemId === "ai-conversation") {
+      router.push("/(tabs)/ai-teacher");
+      return;
+    }
+    markPlanItemComplete("new-words");
+    router.push("/(tabs)/learn");
+  }
+
+  function handleViewAllPlan() {
+    posthog.capture("daily_plan_view_all_tapped", {
+      language_code: selectedLanguage,
+    });
+    router.push("/(tabs)/learn");
+  }
 
   return (
     <SafeAreaView
@@ -169,14 +292,7 @@ export default function HomeScreen() {
               className="bg-white rounded-xl py-2 px-[22px] self-start"
               activeOpacity={0.85}
               testID="continue-learning-button"
-              onPress={() => {
-                posthog.capture("continue_learning_tapped", {
-                  language_code: selectedLanguage,
-                  unit_order: unit?.order ?? 1,
-                  xp_today: xpToday,
-                  streak,
-                });
-              }}
+              onPress={handleContinueLearning}
             >
               <Text className="font-poppins-semibold text-[13px] text-lingua-purple">
                 Continue
@@ -195,7 +311,11 @@ export default function HomeScreen() {
           <Text className="font-poppins-semibold text-[17px] text-text-primary">
             {"Today's plan"}
           </Text>
-          <TouchableOpacity activeOpacity={0.7}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleViewAllPlan}
+            testID="daily-plan-view-all"
+          >
             <Text className="font-poppins-medium text-[13px] text-lingua-blue">
               View all
             </Text>
@@ -207,10 +327,15 @@ export default function HomeScreen() {
           className="bg-white rounded-[20px] border border-border mb-4 overflow-hidden"
           style={styles.planCardShadow}
         >
-          {PLAN_ITEMS.map((item, index) => (
+          {planItems.map((item, index) => (
             <View key={item.id}>
               {index > 0 && <View className="h-px bg-border mx-4" />}
-              <View className="flex-row items-center px-4 py-[14px]">
+              <TouchableOpacity
+                className="flex-row items-center px-4 py-[14px]"
+                activeOpacity={0.7}
+                testID={`daily-plan-item-${item.id}`}
+                onPress={() => handlePlanItemPress(item.id)}
+              >
                 <View
                   className="w-11 h-11 rounded-xl items-center justify-center"
                   style={{ backgroundColor: item.iconBg }}
@@ -232,7 +357,7 @@ export default function HomeScreen() {
                 ) : (
                   <View className="w-[26px] h-[26px] rounded-full border-2 border-border" />
                 )}
-              </View>
+              </TouchableOpacity>
             </View>
           ))}
         </View>

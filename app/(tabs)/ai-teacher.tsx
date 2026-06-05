@@ -1,12 +1,22 @@
-import { posthog } from "@/lib/posthog";
-import { useEffect } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { posthog } from "@/lib/posthog";
+import { useDailyPlanStore } from "@/store/dailyPlanStore";
+
 export default function AITeacherScreen() {
-  useEffect(() => {
-    posthog.capture("ai_teacher_viewed");
-  }, []);
+  const markPlanItemComplete = useDailyPlanStore((s) => s.markComplete);
+  const syncToday = useDailyPlanStore((s) => s.syncToday);
+
+  useFocusEffect(
+    useCallback(() => {
+      syncToday();
+      markPlanItemComplete("ai-conversation");
+      posthog.capture("ai_teacher_viewed");
+    }, [markPlanItemComplete, syncToday])
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
